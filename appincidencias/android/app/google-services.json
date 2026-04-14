@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "338312884612",
+    "project_id": "cantillana-report-app",
+    "storage_bucket": "cantillana-report-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:338312884612:android:26fcf88c6202717f25edd1",
+        "android_client_info": {
+          "package_name": "com.example.appincidencias"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_3ZbfbFM7eQoBDYVkiQj2HDdPXiFUa-0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
