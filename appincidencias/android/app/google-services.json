@@ -12,7 +12,20 @@
           "package_name": "com.example.appincidencias"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "338312884612-r28hmhrr77qh19mr3fqm3u7e6evbk2kk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.appincidencias",
+            "certificate_hash": "04d0fdc6a04342f552bb1e7fbc0b3fdba4c0a05e"
+          }
+        },
+        {
+          "client_id": "338312884612-e5maa81in8h5v2r3oraq4nr1oahf88b0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD_3ZbfbFM7eQoBDYVkiQj2HDdPXiFUa-0"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "338312884612-e5maa81in8h5v2r3oraq4nr1oahf88b0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "338312884612-s19trp6n1lssbt0sqc2tmhsefm7jgale.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.appincidencias"
+              }
+            }
+          ]
         }
       }
     }
