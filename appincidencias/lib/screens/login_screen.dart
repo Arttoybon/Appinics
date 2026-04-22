@@ -1,5 +1,7 @@
 import 'package:appincidencias/screens/register_screen.dart';
 import 'package:appincidencias/screens/report_screen.dart';
+import 'package:appincidencias/utils/google_sign_in_handler.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -15,20 +17,72 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isWebInitialized = false;
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile', 'openid'],
+  );
 
   @override
   void initState() {
     super.initState();
-    _initGoogleSignIn();
+    _initWeb();
+    _googleSignIn.onCurrentUserChanged.listen((GoogleSignInAccount? account) {
+      _handleGoogleSignInResult(account);
+    });
+    _googleSignIn.signInSilently();
   }
 
-  Future<void> _initGoogleSignIn() async {
+  Future<void> _initWeb() async {
+    if (kIsWeb) {
+      await initWebGoogleSignIn((initialized) {
+        if (mounted) {
+          setState(() {
+            _isWebInitialized = initialized;
+          });
+        }
+      });
+    }
+  }
+
+  Future<void> _handleGoogleSignInResult(GoogleSignInAccount? googleUser) async {
+    if (googleUser == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
     try {
-      await _googleSignIn.initialize();
+      if (mounted) setState(() => _isLoading = true);
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final String? accessToken = googleAuth.accessToken;
+
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (mounted) {
+        debugPrint("Logueado con éxito en Firebase");
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ReportScreen()),
+        );
+      }
     } catch (e) {
-      debugPrint("Error initializing GoogleSignIn: $e");
+      if (mounted) {
+        debugPrint("ERROR DETECTADO: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error en el login: $e"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -67,7 +121,6 @@ class _LoginScreenState extends State<LoginScreen> {
         message = "Email no válido";
       }
 
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -90,40 +143,12 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
+    if (kIsWeb) return;
+
     setState(() => _isLoading = true);
     try {
-      // 1. Iniciar el flujo de selección de cuenta (usar authenticate en v7+)
-      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
-      
-      if (googleUser == null) {
-        setState(() => _isLoading = false);
-        return; 
-      }
-
-      // 2. Obtener los tokens de autenticación
-      // En v7+, idToken está en authentication, pero accessToken requiere authorizeScopes
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-      
-      final clientAuth = await googleUser.authorizationClient.authorizeScopes(['email', 'profile', 'openid']);
-      final String? accessToken = clientAuth.accessToken;
-
-      // 3. Crear la credencial para Firebase
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      // 4. Iniciar sesión en Firebase con esa credencial
-      await FirebaseAuth.instance.signInWithCredential(credential);
-      
-      if (mounted) {
-        debugPrint("Logueado con éxito en Firebase");
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ReportScreen()),
-        );
-      }
-
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      await _handleGoogleSignInResult(googleUser);
     } catch (e) {
       if (mounted) {
         debugPrint("ERROR DETECTADO: $e");
@@ -135,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -175,15 +200,10 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
               const Text("O inicia sesión con"),
               const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: OutlinedButton.icon(
-                  onPressed: _isLoading ? null : _signInWithGoogle,
-                  icon: Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png', height: 24),
-                  label: const Text("Continuar con Google", style: TextStyle(color: Colors.black87, fontSize: 16)),
-                  style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.grey), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                ),
+              buildGoogleSignInButton(
+                isLoading: _isLoading,
+                onPressed: _signInWithGoogle,
+                isWebInitialized: _isWebInitialized,
               ),
               const SizedBox(height: 20),
               TextButton(

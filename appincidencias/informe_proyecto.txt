@@ -1,0 +1,56 @@
+================================================================================
+                    INFORME TÉCNICO: CANTILLANA REPORT
+================================================================================
+
+1. DISEÑO Y ARQUITECTURA
+--------------------------------------------------------------------------------
+* Cambios respecto al diseño inicial:
+  - Implementación de arquitectura cross-platform real (Web y Móvil).
+  - Migración a Google Identity Services (GIS) para soporte de login en navegadores.
+  - Adaptación del sistema de archivos para usar XFile en lugar de dart:io (Web compliance).
+  - Inclusión de controladores de inicialización asíncrona para evitar errores de carga.
+
+* Modelo de datos definitivo:
+  Tabla: incidencias
+  - id (INT, Primary Key, Auto-increment)
+  - uid_usuario (VARCHAR 255): ID único de Firebase (Google/Email).
+  - categoria (VARCHAR 100): Alumbrado, Limpieza, Mobiliario, Vías.
+  - descripcion (TEXT): Explicación del problema.
+  - foto_url (VARCHAR 255): Enlace público a la imagen almacenada.
+  - fecha (DATETIME): Fecha y hora del reporte.
+
+* Explicación de la arquitectura implementada:
+  - Frontend: Flutter (Dart) con enfoque en componentes desacoplados.
+  - Autenticación: Firebase Auth (Email/Password y Google Sign-In).
+  - Backend: Servidor PHP para procesamiento de archivos y lógica de negocio.
+  - Base de Datos: MySQL (Relacional) para almacenamiento persistente.
+  - Comunicación: Protocolo HTTP (MultipartRequest) con soporte CORS.
+
+* API Definida:
+  - POST /save_incidencia.php: Endpoint principal para recibir reportes con imagen.
+    Campos: uid_usuario, categoria, descripcion, foto (file).
+
+2. CÓDIGO FUENTE
+--------------------------------------------------------------------------------
+* Acceso al repositorio: [AÑADIR AQUÍ TU LINK DE GITHUB/GITLAB]
+* Código organizado y documentado:
+  - /lib/screens: Interfaces de usuario (Login, Registro, Reporte).
+  - /lib/services: Lógica de conexión (API, Autenticación).
+  - /lib/utils: Manejadores multiplataforma (Conditional imports).
+  - /lib/models: Estructuras de datos.
+
+3. PROTOTIPO FUNCIONAL DESPLEGADO
+--------------------------------------------------------------------------------
+* URL de acceso: https://alumno24.fpcantillana.org/
+* Credenciales de prueba:
+  - Login con Google (Cualquier cuenta Gmail autorizada).
+  - Registro libre mediante Email/Password dentro de la app.
+
+4. FUNCIONALIDADES MÍNIMAS IMPLEMENTADAS
+--------------------------------------------------------------------------------
+* Registro y login de usuarios: Totalmente funcional mediante Firebase.
+* Creación de incidencias: Formulario dinámico con selección de categoría y texto.
+* Almacenamiento en base de datos: Integración con MySQL vía PHP.
+* Evidencia visual: Captura de cámara (Móvil) o Galería (Web) y subida al servidor.
+* Visualización básica: Feedback de éxito/error mediante SnackBars integrados.
+================================================================================

@@ -1,7 +1,9 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io'; // Para Mobile
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:appincidencias/services/api_service.dart'; // Asegúrate de que la ruta es correcta
+import 'package:appincidencias/services/api_service.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -14,13 +16,11 @@ class _ReportScreenState extends State<ReportScreen> {
   String? _categoriaSeleccionada;
   final TextEditingController _descController = TextEditingController();
   
-  // Variables nuevas para funcionalidad
-  File? _imagenSeleccionada;
+  XFile? _imagenSeleccionada;
   bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
   final ApiService _apiService = ApiService();
 
-  // Lista de categorías con sus iconos
   final List<Map<String, dynamic>> _categorias = [
     {'nombre': 'Alumbrado', 'icon': Icons.lightbulb},
     {'nombre': 'Limpieza', 'icon': Icons.cleaning_services},
@@ -28,21 +28,19 @@ class _ReportScreenState extends State<ReportScreen> {
     {'nombre': 'Vías', 'icon': Icons.add_road},
   ];
 
-  // Función para tomar la foto
   Future<void> _tomarFoto() async {
     final XFile? photo = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 50, // Comprimimos para no saturar el servidor del IES
+      source: kIsWeb ? ImageSource.gallery : ImageSource.camera,
+      imageQuality: 50,
     );
 
     if (photo != null) {
       setState(() {
-        _imagenSeleccionada = File(photo.path);
+        _imagenSeleccionada = photo;
       });
     }
   }
 
-  // Función para enviar el reporte
   Future<void> _enviarReporte() async {
     if (_categoriaSeleccionada == null || _descController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -59,13 +57,13 @@ class _ReportScreenState extends State<ReportScreen> {
       _imagenSeleccionada,
     );
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (exito) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✅ Incidencia enviada correctamente"), backgroundColor: Colors.green),
       );
-      // Limpiamos el formulario tras el éxito
       setState(() {
         _categoriaSeleccionada = null;
         _descController.clear();
@@ -94,7 +92,6 @@ class _ReportScreenState extends State<ReportScreen> {
             const Text("1. Selecciona la categoría", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 15),
             
-            // Grid de categorías
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -140,7 +137,6 @@ class _ReportScreenState extends State<ReportScreen> {
 
             const SizedBox(height: 25),
             
-            // Sección de Foto corregida
             const Text("3. Evidencia visual", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 10),
             Center(
@@ -149,7 +145,9 @@ class _ReportScreenState extends State<ReportScreen> {
                   if (_imagenSeleccionada != null) 
                     ClipRRect(
                       borderRadius: BorderRadius.circular(15),
-                      child: Image.file(_imagenSeleccionada!, height: 200, width: double.infinity, fit: BoxFit.cover),
+                      child: kIsWeb 
+                        ? Image.network(_imagenSeleccionada!.path, height: 200, width: double.infinity, fit: BoxFit.cover)
+                        : Image.file(File(_imagenSeleccionada!.path), height: 200, width: double.infinity, fit: BoxFit.cover),
                     ),
                   const SizedBox(height: 10),
                   ElevatedButton.icon(
@@ -168,7 +166,6 @@ class _ReportScreenState extends State<ReportScreen> {
 
             const SizedBox(height: 30),
             
-            // Botón Enviar con estado de carga
             SizedBox(
               width: double.infinity,
               height: 55,
