@@ -1,13 +1,13 @@
 import 'package:appincidencias/screens/login_screen.dart'; 
-import 'package:appincidencias/screens/my_incidents_screen.dart'; // Añadido para ver historial
-import 'package:flutter/foundation.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io'; // Para Mobile
-import 'package:flutter/material.dart';
+import 'package:appincidencias/screens/my_incidents_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart'; // Añadido para cerrar sesión de Google
+import 'package:google_sign_in/google_sign_in.dart'; // Añadido este import que faltaba
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:appincidencias/services/api_service.dart';
+import 'dart:io';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -19,9 +19,10 @@ class ReportScreen extends StatefulWidget {
 class _ReportScreenState extends State<ReportScreen> {
   String? _categoriaSeleccionada;
   final TextEditingController _descController = TextEditingController();
-  
   XFile? _imagenSeleccionada;
   bool _isLoading = false;
+  Position? _currentPosition;
+  
   final ImagePicker _picker = ImagePicker();
   final ApiService _apiService = ApiService();
 
@@ -31,6 +32,51 @@ class _ReportScreenState extends State<ReportScreen> {
     {'nombre': 'Mobiliario', 'icon': Icons.chair},
     {'nombre': 'Vías', 'icon': Icons.add_road},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _determinePosition();
+  }
+
+  // Función para obtener la ubicación automáticamente
+  Future<void> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      debugPrint('Servicio de ubicación desactivado.');
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        debugPrint('Permisos de ubicación denegados.');
+        return;
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      debugPrint('Permisos denegados permanentemente.');
+      return;
+    } 
+
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high
+      );
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error obteniendo ubicación: $e");
+    }
+  }
 
   Future<void> _tomarFoto() async {
     final XFile? photo = await _picker.pickImage(
@@ -56,9 +102,11 @@ class _ReportScreenState extends State<ReportScreen> {
     setState(() => _isLoading = true);
 
     bool exito = await _apiService.enviarIncidenciaCompleta(
-      _categoriaSeleccionada!,
-      _descController.text,
-      _imagenSeleccionada,
+      categoria: _categoriaSeleccionada!,
+      descripcion: _descController.text,
+      imagen: _imagenSeleccionada,
+      latitud: _currentPosition?.latitude,
+      longitud: _currentPosition?.longitude,
     );
 
     if (!mounted) return;
@@ -66,7 +114,7 @@ class _ReportScreenState extends State<ReportScreen> {
 
     if (exito) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Incidencia enviada correctamente"), backgroundColor: Colors.green),
+        const SnackBar(content: Text("✅ Incidencia enviada con ubicación"), backgroundColor: Colors.green),
       );
       setState(() {
         _categoriaSeleccionada = null;
@@ -89,47 +137,20 @@ class _ReportScreenState extends State<ReportScreen> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.list_alt, color: Colors.white),
-          tooltip: 'Mis Incidencias',
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MyIncidentsScreen()),
-            );
-          },
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyIncidentsScreen())),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
-            tooltip: 'Cerrar Sesión',
             onPressed: () async {
-              debugPrint(">>> BOTÓN LOGOUT PRESIONADO <<<");
-              try {
-                // 1. Cerrar sesión en Google
-                final GoogleSignIn googleSignIn = GoogleSignIn();
-                await googleSignIn.signOut();
-                debugPrint("Google Sign-Out OK");
-
-                // 2. Cerrar sesión en Firebase
-                await FirebaseAuth.instance.signOut();
-                debugPrint("Firebase Sign-Out OK");
-
-                // 3. NAVEGACIÓN FORZADA (Por si el AuthWrapper falla)
-                if (context.mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    (route) => false, // Borra todo el historial de pantallas
-                  );
-                }
-                
-              } catch (e) {
-                debugPrint("Error en Logout: $e");
-                await FirebaseAuth.instance.signOut();
-                if (context.mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    (route) => false,
-                  );
-                }
+              final GoogleSignIn googleSignIn = GoogleSignIn();
+              await googleSignIn.signOut();
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
+                );
               }
             },
           ),
@@ -187,7 +208,6 @@ class _ReportScreenState extends State<ReportScreen> {
             ),
 
             const SizedBox(height: 25),
-            
             const Text("3. Evidencia visual", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 10),
             Center(
@@ -213,6 +233,28 @@ class _ReportScreenState extends State<ReportScreen> {
                   ),
                 ],
               ),
+            ),
+
+            const SizedBox(height: 20),
+            // Indicador de Ubicación
+            Row(
+              children: [
+                Icon(
+                  _currentPosition != null ? Icons.location_on : Icons.location_searching,
+                  color: _currentPosition != null ? Colors.green : Colors.grey,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  _currentPosition != null 
+                    ? "Ubicación capturada correctamente" 
+                    : "Obteniendo ubicación...",
+                  style: TextStyle(
+                    color: _currentPosition != null ? Colors.green : Colors.grey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 30),

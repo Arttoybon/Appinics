@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart'; // Para abrir Google Maps
 
 class IncidentDetailsScreen extends StatelessWidget {
   final Map<String, dynamic> data;
 
   const IncidentDetailsScreen({super.key, required this.data});
+
+  // Función para abrir la ubicación en Google Maps
+  Future<void> _openMap() async {
+    final double? lat = data['latitud'];
+    final double? lng = data['longitud'];
+
+    if (lat != null && lng != null) {
+      final Uri url = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        throw Exception('No se pudo abrir el mapa');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,21 +37,12 @@ class IncidentDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Imagen a pantalla completa (o casi)
             if (data['foto_url'] != null)
-              Container(
+              Image.network(
+                data['foto_url'],
                 width: double.infinity,
                 height: 300,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                ),
-                child: Image.network(
-                  data['foto_url'],
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Center(
-                    child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                  ),
-                ),
+                fit: BoxFit.cover,
               )
             else
               Container(
@@ -52,7 +57,6 @@ class IncidentDetailsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Estado y Categoría
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -67,52 +71,37 @@ class IncidentDetailsScreen extends StatelessWidget {
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ),
-                      Text(
-                        fechaFormateada,
-                        style: const TextStyle(color: Colors.grey, fontSize: 14),
-                      ),
+                      Text(fechaFormateada, style: const TextStyle(color: Colors.grey, fontSize: 14)),
                     ],
                   ),
                   const SizedBox(height: 20),
                   
-                  // Título Categoría
                   const Text("Categoría", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 5),
-                  Row(
-                    children: [
-                      const Icon(Icons.label_important, color: Colors.orange),
-                      const SizedBox(width: 10),
-                      Text(
-                        data['categoria'] ?? "Sin categoría",
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
+                  Text(data['categoria'] ?? "Sin categoría", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  
                   const Divider(height: 40),
 
-                  // Descripción
                   const Text("Descripción", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: Text(
-                      data['descripcion'] ?? "No se proporcionó descripción.",
-                      style: const TextStyle(fontSize: 16, height: 1.5),
-                    ),
-                  ),
+                  Text(data['descripcion'] ?? "Sin descripción", style: const TextStyle(fontSize: 16)),
                   
-                  const SizedBox(height: 30),
-                  
-                  // Información del Usuario
-                  const Text("Información técnica", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  const SizedBox(height: 5),
-                  Text("ID Usuario: ${data['uid_usuario'] ?? 'Anónimo'}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                  const Divider(height: 40),
+
+                  // Sección de Ubicación
+                  const Text("Ubicación", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  if (data['latitud'] != null)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.location_on, color: Colors.red),
+                      title: const Text("Ver en Google Maps"),
+                      subtitle: Text("Lat: ${data['latitud']}, Lng: ${data['longitud']}"),
+                      trailing: const Icon(Icons.open_in_new),
+                      onTap: _openMap,
+                    )
+                  else
+                    const Text("Ubicación no disponible", style: TextStyle(color: Colors.grey)),
                 ],
               ),
             ),
