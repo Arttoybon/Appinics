@@ -1,3 +1,4 @@
+import 'package:appincidencias/screens/login_screen.dart'; // Importado para navegación forzada
 import 'package:flutter/foundation.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io'; // Para Mobile
@@ -90,22 +91,34 @@ class _ReportScreenState extends State<ReportScreen> {
             icon: const Icon(Icons.logout, color: Colors.white),
             tooltip: 'Cerrar Sesión',
             onPressed: () async {
+              debugPrint(">>> BOTÓN LOGOUT PRESIONADO <<<");
               try {
-                debugPrint("Iniciando Logout...");
-                
-                // 1. Cerrar sesión en Google (hacer esto primero para evitar que detecte sesión activa)
+                // 1. Cerrar sesión en Google
                 final GoogleSignIn googleSignIn = GoogleSignIn();
                 await googleSignIn.signOut();
-                debugPrint("Google Sign-Out completado");
+                debugPrint("Google Sign-Out OK");
 
                 // 2. Cerrar sesión en Firebase
                 await FirebaseAuth.instance.signOut();
-                debugPrint("Firebase Sign-Out completado");
+                debugPrint("Firebase Sign-Out OK");
+
+                // 3. NAVEGACIÓN FORZADA (Por si el AuthWrapper falla)
+                if (context.mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false, // Borra todo el historial de pantallas
+                  );
+                }
                 
               } catch (e) {
                 debugPrint("Error en Logout: $e");
-                // Si falla Google, al menos cerramos Firebase
                 await FirebaseAuth.instance.signOut();
+                if (context.mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
               }
             },
           ),
