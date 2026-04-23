@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Añadido para el portapapeles
+import 'package:flutter/services.dart'; 
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -170,7 +170,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     }
   }
 
-  // Función para copiar el ID al portapapeles
   void _copyToClipboard() {
     Clipboard.setData(ClipboardData(text: widget.docId));
     ScaffoldMessenger.of(context).showSnackBar(
@@ -249,27 +248,52 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                   
                   const Divider(height: 30),
                   
-                  // ID de la incidencia con botón de copiar
-                  InkWell(
-                    onTap: _copyToClipboard,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 5),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              "ID de Reporte: #${widget.docId}", 
-                              style: const TextStyle(fontSize: 11, color: Colors.grey, fontFamily: 'monospace'),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                  // Información del Reporte (Autor e ID)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.person, size: 16, color: Colors.orange),
+                            const SizedBox(width: 5),
+                            const Text("Reportado por:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          ],
+                        ),
+                        Text(
+                          widget.data['email_usuario'] ?? "Anónimo / No disponible",
+                          style: const TextStyle(fontSize: 14, color: Colors.black87),
+                        ),
+                        const SizedBox(height: 10),
+                        InkWell(
+                          onTap: _copyToClipboard,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.fingerprint, size: 16, color: Colors.orange),
+                              const SizedBox(width: 5),
+                              const Text("ID Reporte:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  "#${widget.docId}", 
+                                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontFamily: 'monospace'),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const Icon(Icons.copy, size: 14, color: Colors.grey),
+                            ],
                           ),
-                          const Icon(Icons.copy, size: 14, color: Colors.grey),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                   
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
                   Text("Categoría: ${widget.data['categoria']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   Text("Fecha: $fechaStr", style: const TextStyle(color: Colors.grey)),
                   const SizedBox(height: 20),
