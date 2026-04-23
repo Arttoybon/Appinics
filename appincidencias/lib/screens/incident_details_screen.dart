@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Añadido para el portapapeles
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -169,13 +170,24 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     }
   }
 
+  // Función para copiar el ID al portapapeles
+  void _copyToClipboard() {
+    Clipboard.setData(ClipboardData(text: widget.docId));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("ID copiado al portapapeles"),
+        duration: Duration(seconds: 2),
+        backgroundColor: Colors.blueGrey,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     DateTime? fecha = (widget.data['fecha'] != null) ? (widget.data['fecha'] as Timestamp).toDate() : null;
     String fechaStr = fecha != null ? DateFormat('dd/MM/yyyy HH:mm').format(fecha) : "S/F";
     bool canChangeStatus = _isAdmin || _isTechnician;
     
-    // El técnico puede auto-asignarse si la incidencia no tiene dueño y es de su especialidad
     bool canSelfAssign = _isTechnician && 
                          _assignedTo == null && 
                          _techSpecialty == (widget.data['categoria'] ?? "").toString().trim().toLowerCase();
@@ -194,7 +206,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // BOTÓN DE AUTO-ASIGNACIÓN PARA TÉCNICOS
                   if (canSelfAssign) ...[
                     SizedBox(
                       width: double.infinity,
@@ -237,6 +248,28 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                   ],
                   
                   const Divider(height: 30),
+                  
+                  // ID de la incidencia con botón de copiar
+                  InkWell(
+                    onTap: _copyToClipboard,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              "ID de Reporte: #${widget.docId}", 
+                              style: const TextStyle(fontSize: 11, color: Colors.grey, fontFamily: 'monospace'),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(Icons.copy, size: 14, color: Colors.grey),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 10),
                   Text("Categoría: ${widget.data['categoria']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   Text("Fecha: $fechaStr", style: const TextStyle(color: Colors.grey)),
                   const SizedBox(height: 20),
