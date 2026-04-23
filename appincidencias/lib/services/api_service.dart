@@ -29,7 +29,9 @@ class ApiService {
     try {
       debugPrint("--- INICIANDO ENVÍO (NATIVE MODE: cantillana-native) ---");
       
-      String uid = _auth.currentUser?.uid ?? "anonimo";
+      final user = _auth.currentUser;
+      String uid = user?.uid ?? "anonimo";
+      String email = user?.email ?? "anonimo@gmail.com";
       String? fotoUrl;
 
       if (imagen != null) {
@@ -49,6 +51,7 @@ class ApiService {
 
       await _firestore.collection('incidencias').add({
         'uid_usuario': uid,
+        'email_usuario': email, // Guardamos el email del reportero
         'categoria': categoria,
         'descripcion': descripcion,
         'foto_url': fotoUrl,
