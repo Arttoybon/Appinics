@@ -1,107 +1,110 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart'; // Para abrir Google Maps
+import 'package:url_launcher/url_launcher.dart';
 
-class IncidentDetailsScreen extends StatelessWidget {
+class IncidentDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> data;
+  final String docId;
 
-  const IncidentDetailsScreen({super.key, required this.data});
+  const IncidentDetailsScreen({super.key, required this.data, required this.docId});
 
-  // Función para abrir la ubicación en Google Maps
+  @override
+  State<IncidentDetailsScreen> createState() => _IncidentDetailsScreenState();
+}
+
+class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
+  bool _isAdmin = false;
+  String? _currentStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentStatus = widget.data['estado'] ?? 'Pendiente';
+    _checkAdminStatus();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('usuarios').doc(user.uid).get();
+        if (doc.exists) {
+          String? rol = doc.data()?['rol']?.toString().trim().toLowerCase();
+          if (rol == 'admin' || user.email == 'rosadelalbaxx@gmail.com') {
+            if (mounted) setState(() => _isAdmin = true);
+          }
+        } else if (user.email == 'rosadelalbaxx@gmail.com') {
+          if (mounted) setState(() => _isAdmin = true);
+        }
+      } catch (e) {
+        if (user.email == 'rosadelalbaxx@gmail.com') {
+          if (mounted) setState(() => _isAdmin = true);
+        }
+      }
+    }
+  }
+
+  Future<void> _updateStatus(String? newStatus) async {
+    if (newStatus == null) return;
+    try {
+      await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+          .collection('incidencias').doc(widget.docId).update({'estado': newStatus});
+      setState(() => _currentStatus = newStatus);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Estado actualizado"), backgroundColor: Colors.green));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+    }
+  }
+
   Future<void> _openMap() async {
-    final double? lat = data['latitud'];
-    final double? lng = data['longitud'];
-
+    final double? lat = widget.data['latitud'];
+    final double? lng = widget.data['longitud'];
     if (lat != null && lng != null) {
       final Uri url = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-        throw Exception('No se pudo abrir el mapa');
-      }
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) throw 'Error al abrir mapa';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    DateTime? fecha = (data['fecha'] != null) ? data['fecha'].toDate() : null;
-    String fechaFormateada = fecha != null 
-        ? DateFormat('dd/MM/yyyy HH:mm').format(fecha) 
-        : "Sin fecha";
+    DateTime? fecha = (widget.data['fecha'] != null) ? (widget.data['fecha'] as Timestamp).toDate() : null;
+    String fechaStr = fecha != null ? DateFormat('dd/MM/yyyy HH:mm').format(fecha) : "S/F";
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Detalles de Incidencia", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.orange,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      appBar: AppBar(title: const Text("Detalles"), backgroundColor: Colors.orange, iconTheme: const IconThemeData(color: Colors.white)),
       body: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (data['foto_url'] != null)
-              Image.network(
-                data['foto_url'],
-                width: double.infinity,
-                height: 300,
-                fit: BoxFit.cover,
-              )
-            else
-              Container(
-                width: double.infinity,
-                height: 150,
-                color: Colors.orange.withOpacity(0.1),
-                child: const Icon(Icons.image_not_supported, size: 50, color: Colors.orange),
-              ),
-
+            if (widget.data['foto_url'] != null) Image.network(widget.data['foto_url'], width: double.infinity, height: 250, fit: BoxFit.cover),
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(data['estado']),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          (data['estado'] ?? "Pendiente").toUpperCase(),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
-                      ),
-                      Text(fechaFormateada, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-                    ],
-                  ),
+                  if (_isAdmin) ...[
+                    const Text("ESTADO (ADMIN)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                    DropdownButton<String>(
+                      value: _currentStatus,
+                      isExpanded: true,
+                      items: ['Pendiente', 'En proceso', 'Resuelta'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+                      onChanged: _updateStatus,
+                    ),
+                  ] else ...[
+                    Text("ESTADO: $_currentStatus", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  ],
+                  const Divider(height: 30),
+                  Text("Categoría: ${widget.data['categoria']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text("Fecha: $fechaStr", style: const TextStyle(color: Colors.grey)),
                   const SizedBox(height: 20),
-                  
-                  const Text("Categoría", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 5),
-                  Text(data['categoria'] ?? "Sin categoría", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  
-                  const Divider(height: 40),
-
-                  const Text("Descripción", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  Text(data['descripcion'] ?? "Sin descripción", style: const TextStyle(fontSize: 16)),
-                  
-                  const Divider(height: 40),
-
-                  // Sección de Ubicación
-                  const Text("Ubicación", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  if (data['latitud'] != null)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.location_on, color: Colors.red),
-                      title: const Text("Ver en Google Maps"),
-                      subtitle: Text("Lat: ${data['latitud']}, Lng: ${data['longitud']}"),
-                      trailing: const Icon(Icons.open_in_new),
-                      onTap: _openMap,
-                    )
-                  else
-                    const Text("Ubicación no disponible", style: TextStyle(color: Colors.grey)),
+                  const Text("Descripción:", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(widget.data['descripcion'] ?? ""),
+                  const SizedBox(height: 30),
+                  if (widget.data['latitud'] != null)
+                    ElevatedButton.icon(onPressed: _openMap, icon: const Icon(Icons.map), label: const Text("Ver en Mapa")),
                 ],
               ),
             ),
@@ -109,13 +112,5 @@ class IncidentDetailsScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Color _getStatusColor(String? status) {
-    switch (status) {
-      case 'Resuelta': return Colors.green;
-      case 'En proceso': return Colors.blue;
-      default: return Colors.orange;
-    }
   }
 }

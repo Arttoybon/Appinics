@@ -1,6 +1,8 @@
 import 'package:appincidencias/screens/register_screen.dart';
 import 'package:appincidencias/screens/report_screen.dart';
 import 'package:appincidencias/utils/google_sign_in_handler.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Añadido
+import 'package:firebase_core/firebase_core.dart'; // Añadido
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -64,6 +66,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
       await FirebaseAuth.instance.signInWithCredential(credential);
 
+      // Guardar/Actualizar datos del usuario en la colección 'usuarios'
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        debugPrint("--- REGISTRANDO USUARIO GOOGLE EN DB: cantillana-native ---");
+        try {
+          await FirebaseFirestore.instanceFor(
+            app: Firebase.app(),
+            databaseId: 'cantillana-native',
+          ).collection('usuarios').doc(user.uid).set({
+            'email': user.email,
+            'uid': user.uid,
+          }, SetOptions(merge: true));
+          debugPrint("--- REGISTRO GOOGLE EXITOSO ---");
+        } catch (e) {
+          debugPrint("--- ERROR AL REGISTRAR USUARIO GOOGLE: $e ---");
+        }
+      }
+
       if (mounted) {
         debugPrint("Logueado con éxito en Firebase");
         Navigator.pushReplacement(
@@ -103,6 +123,24 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
+      // Guardar/Actualizar datos del usuario en la colección 'usuarios'
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        debugPrint("--- REGISTRANDO USUARIO EN DB: cantillana-native ---");
+        try {
+          await FirebaseFirestore.instanceFor(
+            app: Firebase.app(),
+            databaseId: 'cantillana-native',
+          ).collection('usuarios').doc(user.uid).set({
+            'email': user.email,
+            'uid': user.uid,
+          }, SetOptions(merge: true));
+          debugPrint("--- REGISTRO EXITOSO ---");
+        } catch (e) {
+          debugPrint("--- ERROR AL REGISTRAR USUARIO: $e ---");
+        }
+      }
 
       if (mounted) {
         Navigator.pushReplacement(

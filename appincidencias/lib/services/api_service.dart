@@ -8,9 +8,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 
 class ApiService {
+  // Apuntamos a la nueva base de datos MODO NATIVO
   final FirebaseFirestore _firestore = FirebaseFirestore.instanceFor(
     app: Firebase.app(),
-    databaseId: 'cantillana0ayunt',
+    databaseId: 'cantillana-native',
   );
   
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -26,7 +27,7 @@ class ApiService {
     double? longitud,
   }) async {
     try {
-      debugPrint("--- INICIANDO ENVÍO CON UBICACIÓN ---");
+      debugPrint("--- INICIANDO ENVÍO (NATIVE MODE: cantillana-native) ---");
       
       String uid = _auth.currentUser?.uid ?? "anonimo";
       String? fotoUrl;
@@ -57,10 +58,10 @@ class ApiService {
         'estado': 'Pendiente',
       });
 
-      debugPrint("--- GUARDADO CON ÉXITO ---");
+      debugPrint("--- GUARDADO EXITOSO ---");
       return true;
     } catch (e) {
-      debugPrint("--- ERROR CRÍTICO: $e ---");
+      debugPrint("--- ERROR: $e ---");
       return false;
     }
   }

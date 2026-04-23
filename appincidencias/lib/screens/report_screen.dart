@@ -1,7 +1,10 @@
 import 'package:appincidencias/screens/login_screen.dart'; 
 import 'package:appincidencias/screens/my_incidents_screen.dart';
+import 'package:appincidencias/screens/admin_panel_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart'; // Añadido este import que faltaba
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,6 +24,7 @@ class _ReportScreenState extends State<ReportScreen> {
   final TextEditingController _descController = TextEditingController();
   XFile? _imagenSeleccionada;
   bool _isLoading = false;
+  bool _isAdmin = false;
   Position? _currentPosition;
   
   final ImagePicker _picker = ImagePicker();
@@ -37,70 +41,62 @@ class _ReportScreenState extends State<ReportScreen> {
   void initState() {
     super.initState();
     _determinePosition();
+    _checkAdminStatus();
   }
 
-  // Función para obtener la ubicación automáticamente
-  Future<void> _determinePosition() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+  Future<void> _checkAdminStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instanceFor(
+          app: Firebase.app(),
+          databaseId: 'cantillana-native',
+        ).collection('usuarios').doc(user.uid).get();
 
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      debugPrint('Servicio de ubicación desactivado.');
-      return;
+        if (doc.exists) {
+          String? rol = doc.data()?['rol']?.toString().trim().toLowerCase();
+          if (rol == 'admin' || user.email == 'rosadelalbaxx@gmail.com') {
+            if (mounted) setState(() => _isAdmin = true);
+          }
+        } else if (user.email == 'rosadelalbaxx@gmail.com') {
+          if (mounted) setState(() => _isAdmin = true);
+        }
+      } catch (e) {
+        if (user.email == 'rosadelalbaxx@gmail.com') {
+          if (mounted) setState(() => _isAdmin = true);
+        }
+      }
     }
+  }
 
-    permission = await Geolocator.checkPermission();
+  Future<void> _determinePosition() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return;
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        debugPrint('Permisos de ubicación denegados.');
-        return;
-      }
+      if (permission == LocationPermission.denied) return;
     }
-    
-    if (permission == LocationPermission.deniedForever) {
-      debugPrint('Permisos denegados permanentemente.');
-      return;
-    } 
-
+    if (permission == LocationPermission.deniedForever) return; 
     try {
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high
-      );
-      if (mounted) {
-        setState(() {
-          _currentPosition = position;
-        });
-      }
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      if (mounted) setState(() => _currentPosition = position);
     } catch (e) {
-      debugPrint("Error obteniendo ubicación: $e");
+      debugPrint("Error ubicación: $e");
     }
   }
 
   Future<void> _tomarFoto() async {
-    final XFile? photo = await _picker.pickImage(
-      source: kIsWeb ? ImageSource.gallery : ImageSource.camera,
-      imageQuality: 50,
-    );
-
-    if (photo != null) {
-      setState(() {
-        _imagenSeleccionada = photo;
-      });
-    }
+    final XFile? photo = await _picker.pickImage(source: kIsWeb ? ImageSource.gallery : ImageSource.camera, imageQuality: 50);
+    if (photo != null) setState(() => _imagenSeleccionada = photo);
   }
 
   Future<void> _enviarReporte() async {
     if (_categoriaSeleccionada == null || _descController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Selecciona una categoría y escribe una descripción")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Rellena todos los campos")));
       return;
     }
-
     setState(() => _isLoading = true);
-
     bool exito = await _apiService.enviarIncidenciaCompleta(
       categoria: _categoriaSeleccionada!,
       descripcion: _descController.text,
@@ -108,23 +104,11 @@ class _ReportScreenState extends State<ReportScreen> {
       latitud: _currentPosition?.latitude,
       longitud: _currentPosition?.longitude,
     );
-
     if (!mounted) return;
     setState(() => _isLoading = false);
-
     if (exito) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Incidencia enviada con ubicación"), backgroundColor: Colors.green),
-      );
-      setState(() {
-        _categoriaSeleccionada = null;
-        _descController.clear();
-        _imagenSeleccionada = null;
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("❌ Error al enviar. Revisa tu conexión"), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Incidencia enviada"), backgroundColor: Colors.green));
+      setState(() { _categoriaSeleccionada = null; _descController.clear(); _imagenSeleccionada = null; });
     }
   }
 
@@ -140,17 +124,18 @@ class _ReportScreenState extends State<ReportScreen> {
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyIncidentsScreen())),
         ),
         actions: [
+          if (_isAdmin)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminPanelScreen())),
+            ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
-              final GoogleSignIn googleSignIn = GoogleSignIn();
-              await googleSignIn.signOut();
+              await GoogleSignIn().signOut();
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false,
-                );
+                Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
               }
             },
           ),
@@ -159,17 +144,13 @@ class _ReportScreenState extends State<ReportScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text("1. Selecciona la categoría", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 15),
-            
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.5,
-              ),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.5),
               itemCount: _categorias.length,
               itemBuilder: (context, index) {
                 bool seleccionada = _categoriaSeleccionada == _categorias[index]['nombre'];
@@ -181,98 +162,21 @@ class _ReportScreenState extends State<ReportScreen> {
                       border: Border.all(color: seleccionada ? Colors.orange : Colors.transparent, width: 2),
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(_categorias[index]['icon'], color: Colors.orange, size: 30),
-                        Text(_categorias[index]['nombre'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(_categorias[index]['icon'], color: Colors.orange, size: 30), Text(_categorias[index]['nombre'], style: const TextStyle(fontWeight: FontWeight.bold))]),
                   ),
                 );
               },
             ),
-
             const SizedBox(height: 25),
-            const Text("2. Descripción del problema", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _descController,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: "Explica brevemente qué sucede...",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-                filled: true,
-                fillColor: Colors.grey[50],
-              ),
-            ),
-
+            TextField(controller: _descController, maxLines: 4, decoration: InputDecoration(hintText: "Descripción...", border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)))),
             const SizedBox(height: 25),
-            const Text("3. Evidencia visual", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 10),
-            Center(
-              child: Column(
-                children: [
-                  if (_imagenSeleccionada != null) 
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(15),
-                      child: kIsWeb 
-                        ? Image.network(_imagenSeleccionada!.path, height: 200, width: double.infinity, fit: BoxFit.cover)
-                        : Image.file(File(_imagenSeleccionada!.path), height: 200, width: double.infinity, fit: BoxFit.cover),
-                    ),
-                  const SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    onPressed: _tomarFoto,
-                    icon: const Icon(Icons.camera_alt),
-                    label: Text(_imagenSeleccionada == null ? "Añadir Foto" : "Cambiar Foto"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[200], 
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
+            if (_imagenSeleccionada != null) 
+              ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.network(_imagenSeleccionada!.path, height: 200, width: double.infinity, fit: BoxFit.cover)),
+            ElevatedButton.icon(onPressed: _tomarFoto, icon: const Icon(Icons.camera_alt), label: const Text("Añadir Foto")),
             const SizedBox(height: 20),
-            // Indicador de Ubicación
-            Row(
-              children: [
-                Icon(
-                  _currentPosition != null ? Icons.location_on : Icons.location_searching,
-                  color: _currentPosition != null ? Colors.green : Colors.grey,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  _currentPosition != null 
-                    ? "Ubicación capturada correctamente" 
-                    : "Obteniendo ubicación...",
-                  style: TextStyle(
-                    color: _currentPosition != null ? Colors.green : Colors.grey,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold
-                  ),
-                ),
-              ],
-            ),
-
+            Row(children: [Icon(Icons.location_on, color: _currentPosition != null ? Colors.green : Colors.grey), Text(_currentPosition != null ? " Ubicación lista" : " Obteniendo GPS...")]),
             const SizedBox(height: 30),
-            
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _enviarReporte,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                ),
-                child: _isLoading 
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text("ENVIAR REPORTE", style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ),
+            SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _isLoading ? null : _enviarReporte, style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENVIAR", style: TextStyle(color: Colors.white)))),
           ],
         ),
       ),
