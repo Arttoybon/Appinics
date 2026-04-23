@@ -13,12 +13,18 @@ class AdminPanelScreen extends StatefulWidget {
 
 class _AdminPanelScreenState extends State<AdminPanelScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _incidentSearchController = TextEditingController();
   String _searchQuery = "";
+  final String _selectedStatus = "Todas";
+  final TextEditingController _incidentSearchController = TextEditingController();
   String _incidentSearchQuery = "";
-  String _selectedStatus = "Todas";
+  String _selectedStatusFilter = "Todas";
 
-  // Cambiar rol y especialidad de un usuario
+  // Generar URL de avatar dinámico basado en el email
+  String _getAvatarUrl(String email) {
+    final String name = email.split('@')[0];
+    return "https://ui-avatars.com/api/?name=$name&background=random&color=fff&size=128";
+  }
+
   Future<void> _updateUserRole(String uid, String newRol, {String? especialidad}) async {
     if (uid == FirebaseAuth.instance.currentUser?.uid) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No puedes editarte a ti mismo")));
@@ -49,7 +55,13 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text("Gestionar: $email"),
+          title: Row(
+            children: [
+              CircleAvatar(backgroundImage: NetworkImage(_getAvatarUrl(email)), radius: 20),
+              const SizedBox(width: 10),
+              Expanded(child: Text(email, style: const TextStyle(fontSize: 14))),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,7 +104,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                 Navigator.pop(context);
               }, 
               style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-              child: const Text("GUARDAR CAMBIOS", style: TextStyle(color: Colors.white))
+              child: const Text("GUARDAR", style: TextStyle(color: Colors.white))
             ),
           ],
         ),
@@ -137,7 +149,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         child: TextField(
           controller: _searchController,
           decoration: InputDecoration(
-            hintText: "Escribe email para buscar...", 
+            hintText: "Buscar por email...", 
             prefixIcon: const Icon(Icons.search), 
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))
           ),
@@ -155,6 +167,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               itemCount: docs.length,
               itemBuilder: (context, index) {
                 var data = docs[index].data() as Map<String, dynamic>;
+                String email = data['email'] ?? "";
                 String rol = data['rol'] ?? 'user';
                 String? esp = data['especialidad'];
 
@@ -162,16 +175,12 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: rol == 'admin' ? Colors.red[100] : (rol == 'tecnico' ? Colors.blue[100] : Colors.grey[200]),
-                      child: Icon(
-                        rol == 'admin' ? Icons.security : (rol == 'tecnico' ? Icons.engineering : Icons.person),
-                        color: rol == 'admin' ? Colors.red : (rol == 'tecnico' ? Colors.blue : Colors.grey),
-                      ),
+                      backgroundImage: NetworkImage(_getAvatarUrl(email)),
                     ),
-                    title: Text(data['email'] ?? "", style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text("Rango: ${rol.toUpperCase()} ${esp != null ? '($esp)' : ''}"),
-                    trailing: const Icon(Icons.settings_suggest, color: Colors.orange),
-                    onTap: () => _showRoleDialog(docs[index].id, data['email'], rol, esp),
+                    title: Text(email, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    subtitle: Text("Rol: ${rol.toUpperCase()} ${esp != null ? '($esp)' : ''}"),
+                    trailing: const Icon(Icons.edit, size: 20),
+                    onTap: () => _showRoleDialog(docs[index].id, email, rol, esp),
                   ),
                 );
               },
@@ -186,60 +195,36 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     final query = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native').collection('incidencias').orderBy('fecha', descending: true);
     return Column(
       children: [
-        // Filtros de Estado (Botones rápidos)
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
           child: Row(
             children: ["Todas", "Pendiente", "En proceso", "Resuelta"].map((status) {
-              bool isSelected = _selectedStatus == status;
+              bool isSelected = _selectedStatusFilter == status;
               return Padding(
                 padding: const EdgeInsets.only(right: 8.0),
                 child: FilterChip(
                   label: Text(status),
                   selected: isSelected,
+                  onSelected: (val) => setState(() => _selectedStatusFilter = status),
                   selectedColor: Colors.orange,
                   labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
-                  onSelected: (bool value) {
-                    setState(() => _selectedStatus = status);
-                  },
                 ),
               );
             }).toList(),
           ),
         ),
-
-        // Buscador por ID o Descripción
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-          child: TextField(
-            controller: _incidentSearchController,
-            decoration: InputDecoration(
-              hintText: "Buscar por ID o descripción...",
-              prefixIcon: const Icon(Icons.search),
-              isDense: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-            ),
-            onChanged: (value) => setState(() => _incidentSearchQuery = value.trim().toLowerCase()),
-          ),
-        ),
-
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: query.snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text("Sin incidencias"));
-
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+              
               final docs = snapshot.data!.docs.where((doc) {
                 final data = doc.data() as Map<String, dynamic>;
-                final statusMatch = _selectedStatus == "Todas" || (data['estado'] ?? "Pendiente") == _selectedStatus;
-                final searchMatch = doc.id.toLowerCase().contains(_incidentSearchQuery) || 
-                                    (data['descripcion'] ?? "").toString().toLowerCase().contains(_incidentSearchQuery);
-                return statusMatch && searchMatch;
+                final statusMatch = _selectedStatusFilter == "Todas" || (data['estado'] ?? "Pendiente") == _selectedStatusFilter;
+                return statusMatch;
               }).toList();
-
-              if (docs.isEmpty) return const Center(child: Text("No hay coincidencias"));
 
               return ListView.builder(
                 itemCount: docs.length,
@@ -248,21 +233,11 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   var data = doc.data() as Map<String, dynamic>;
                   return ListTile(
                     leading: data['foto_url'] != null 
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(data['foto_url'], width: 40, height: 40, fit: BoxFit.cover)
-                        )
+                      ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(data['foto_url'], width: 40, height: 40, fit: BoxFit.cover)) 
                       : const CircleAvatar(child: Icon(Icons.report)),
-                    title: Row(
-                      children: [
-                        Text(data['categoria'] ?? "General", style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 8),
-                        Text("#${doc.id.substring(0, 6)}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                      ],
-                    ),
-                    subtitle: Text(data['descripcion'] ?? "", maxLines: 1, overflow: TextOverflow.ellipsis),
-                    trailing: Text(data['estado'] ?? "Pendiente", 
-                      style: TextStyle(color: _getStatusColor(data['estado']), fontWeight: FontWeight.bold, fontSize: 10)),
+                    title: Text(data['categoria'] ?? "General", style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(data['descripcion'] ?? "", maxLines: 1),
+                    trailing: Text("#${doc.id.substring(0,6)}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => IncidentDetailsScreen(data: data, docId: doc.id))),
                   );
                 },
@@ -272,13 +247,5 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         ),
       ],
     );
-  }
-
-  Color _getStatusColor(String? status) {
-    switch (status) {
-      case 'Resuelta': return Colors.green;
-      case 'En proceso': return Colors.blue;
-      default: return Colors.orange;
-    }
   }
 }

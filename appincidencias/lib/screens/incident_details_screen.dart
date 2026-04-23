@@ -33,6 +33,12 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     _checkUserPrivileges();
   }
 
+  // Función para generar avatar dinámico
+  String _getAvatarUrl(String email) {
+    final String name = email.split('@')[0];
+    return "https://ui-avatars.com/api/?name=$name&background=random&color=fff";
+  }
+
   Future<void> _checkUserPrivileges() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -50,7 +56,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
           
           if (mounted) {
             setState(() {
-              if (rol == 'admin' || _isSuperAdmin) {
+              if (rol == 'admin' || user.email == 'rosadelalbaxx@gmail.com') {
                 _isAdmin = true;
                 _fetchTechnicians(); 
               } else if (rol == 'tecnico') {
@@ -59,11 +65,23 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
               }
             });
           }
-        } else if (_isSuperAdmin) {
-          if (mounted) setState(() => _isAdmin = true);
+        } else if (user.email == 'rosadelalbaxx@gmail.com') {
+          if (mounted) {
+            setState(() {
+              _isAdmin = true;
+              _fetchTechnicians();
+            });
+          }
         }
       } catch (e) {
-        debugPrint("Error privileges: $e");
+        if (user.email == 'rosadelalbaxx@gmail.com') {
+          if (mounted) {
+            setState(() {
+              _isAdmin = true;
+              _fetchTechnicians();
+            });
+          }
+        }
       }
     }
   }
@@ -90,20 +108,14 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
   Future<void> _selfAssign() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-
     try {
       await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
           .collection('incidencias').doc(widget.docId).update({
             'asignado_a_uid': user.uid,
             'tecnico_email': user.email,
           });
-      
       setState(() => _assignedTo = user.uid);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Te has asignado esta incidencia"), backgroundColor: Colors.blue)
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Te has asignado esta incidencia"), backgroundColor: Colors.blue));
     } catch (e) {
       debugPrint("Error in self-assignment: $e");
     }
@@ -118,7 +130,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
             'asignado_a_uid': techUid,
             'tecnico_email': tech['email'],
           });
-      
       setState(() => _assignedTo = techUid);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Técnico asignado"), backgroundColor: Colors.blue));
     } catch (e) {
@@ -172,13 +183,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
 
   void _copyToClipboard() {
     Clipboard.setData(ClipboardData(text: widget.docId));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("ID copiado al portapapeles"),
-        duration: Duration(seconds: 2),
-        backgroundColor: Colors.blueGrey,
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ID copiado al portapapeles"), duration: Duration(seconds: 2), backgroundColor: Colors.blueGrey));
   }
 
   @override
@@ -191,10 +196,12 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                          _assignedTo == null && 
                          _techSpecialty == (widget.data['categoria'] ?? "").toString().trim().toLowerCase();
 
+    String reporterEmail = widget.data['email_usuario'] ?? "anonimo@gmail.com";
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Detalles"), backgroundColor: Colors.orange, iconTheme: const IconThemeData(color: Colors.white),
-        actions: [if (_isSuperAdmin) IconButton(icon: const Icon(Icons.delete_forever), onPressed: _deleteIncident)],
+        actions: [if (_isSuperAdmin) IconButton(icon: const Icon(Icons.delete_forever, color: Colors.white), onPressed: _deleteIncident)],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -221,7 +228,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                   if (_isAdmin) ...[
                     const Text("ASIGNAR A TÉCNICO", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
                     DropdownButton<String>(
-                      hint: Text(_availableTechnicians.isEmpty ? "No hay técnicos compatibles" : "Elegir Técnico"),
+                      hint: Text(_availableTechnicians.isEmpty ? "No hay técnicos de ${widget.data['categoria']}" : "Elegir Técnico"),
                       value: _assignedTo, isExpanded: true,
                       items: _availableTechnicians.map((t) => DropdownMenuItem<String>(
                         value: t['uid'].toString(), 
@@ -248,43 +255,42 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                   
                   const Divider(height: 30),
                   
-                  // Información del Reporte (Autor e ID)
+                  // Cuadro del Reportero con Foto de Perfil
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.grey[300]!)
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.person, size: 16, color: Colors.orange),
-                            const SizedBox(width: 5),
-                            const Text("Reportado por:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            CircleAvatar(backgroundImage: NetworkImage(_getAvatarUrl(reporterEmail)), radius: 18),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("Reportado por:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey)),
+                                  Text(reporterEmail, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                        Text(
-                          widget.data['email_usuario'] ?? "Anónimo / No disponible",
-                          style: const TextStyle(fontSize: 14, color: Colors.black87),
-                        ),
-                        const SizedBox(height: 10),
+                        const Divider(height: 20),
                         InkWell(
                           onTap: _copyToClipboard,
                           child: Row(
                             children: [
                               const Icon(Icons.fingerprint, size: 16, color: Colors.orange),
                               const SizedBox(width: 5),
-                              const Text("ID Reporte:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                              const Text("ID Reporte:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey)),
                               const SizedBox(width: 5),
-                              Expanded(
-                                child: Text(
-                                  "#${widget.docId}", 
-                                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontFamily: 'monospace'),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
+                              Expanded(child: Text("#${widget.docId}", style: const TextStyle(fontSize: 11, color: Colors.black54, fontFamily: 'monospace'), overflow: TextOverflow.ellipsis)),
                               const Icon(Icons.copy, size: 14, color: Colors.grey),
                             ],
                           ),
