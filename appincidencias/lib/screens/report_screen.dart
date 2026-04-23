@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io'; // Para Mobile
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart'; // Añadido para cerrar sesión de Google
 import 'package:image_picker/image_picker.dart';
 import 'package:appincidencias/services/api_service.dart';
 
@@ -83,6 +85,31 @@ class _ReportScreenState extends State<ReportScreen> {
         title: const Text("Nuevo Reporte", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.orange,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            tooltip: 'Cerrar Sesión',
+            onPressed: () async {
+              try {
+                debugPrint("Iniciando Logout...");
+                
+                // 1. Cerrar sesión en Google (hacer esto primero para evitar que detecte sesión activa)
+                final GoogleSignIn googleSignIn = GoogleSignIn();
+                await googleSignIn.signOut();
+                debugPrint("Google Sign-Out completado");
+
+                // 2. Cerrar sesión en Firebase
+                await FirebaseAuth.instance.signOut();
+                debugPrint("Firebase Sign-Out completado");
+                
+              } catch (e) {
+                debugPrint("Error en Logout: $e");
+                // Si falla Google, al menos cerramos Firebase
+                await FirebaseAuth.instance.signOut();
+              }
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

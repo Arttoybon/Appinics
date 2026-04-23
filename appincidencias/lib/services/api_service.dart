@@ -16,9 +16,9 @@ class ApiService {
   
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Configuración de Cloudinary
-  final String _cloudinaryUrl = "https://api.cloudinary.com/v1_1/demo/image/upload";
-  final String _uploadPreset = "docs_upload_example_preset";
+  // Configuración de Cloudinary PERSONAL
+  final String _cloudinaryUrl = "https://api.cloudinary.com/v1_1/dftjjcrtv/image/upload";
+  final String _uploadPreset = "incidencias_preset";
 
   Future<bool> enviarIncidenciaCompleta(String categoria, String descripcion, XFile? imagen) async {
     try {
