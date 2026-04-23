@@ -14,11 +14,13 @@ class AdminPanelScreen extends StatefulWidget {
 
 class _AdminPanelScreenState extends State<AdminPanelScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _incidentSearchController = TextEditingController();
   String _searchQuery = "";
+  String _incidentSearchQuery = "";
+  String _selectedStatus = "Todas"; // Filtro de estado predeterminado
 
   // Cambiar el rol de un usuario (Dar o Quitar Admin)
   Future<void> _toggleAdmin(String uid, String currentRol, String email) async {
-    // Seguridad: No quitarse el admin a uno mismo por accidente
     if (uid == FirebaseAuth.instance.currentUser?.uid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("No puedes quitarte el rango a ti mismo")),
@@ -57,6 +59,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         appBar: AppBar(
           title: const Text("Gestión Ayuntamiento", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           backgroundColor: Colors.orange,
+          iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.people), text: "Usuarios"),
@@ -94,18 +97,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               hintText: "Buscar usuario por email...",
               prefixIcon: const Icon(Icons.search),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-              suffixIcon: _searchQuery.isNotEmpty 
-                ? IconButton(icon: const Icon(Icons.clear), onPressed: () {
-                    _searchController.clear();
-                    setState(() => _searchQuery = "");
-                  })
-                : null,
             ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value.trim().toLowerCase();
-              });
-            },
+            onChanged: (value) => setState(() => _searchQuery = value.trim().toLowerCase()),
           ),
         ),
         Expanded(
@@ -115,7 +108,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text("No hay usuarios registrados"));
 
-              // Filtrado manual para las sugerencias en tiempo real
               final docs = snapshot.data!.docs.where((doc) {
                 final email = (doc.data() as Map<String, dynamic>)['email']?.toString().toLowerCase() ?? "";
                 return email.contains(_searchQuery);
@@ -134,7 +126,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                       backgroundColor: isAdmin ? Colors.orange : Colors.grey[200],
                       child: Icon(isAdmin ? Icons.security : Icons.person, color: isAdmin ? Colors.white : Colors.grey),
                     ),
-                    title: Text(email, style: TextStyle(fontWeight: isAdmin ? FontWeight.bold : FontWeight.normal)),
+                    title: Text(email),
                     subtitle: Text("Rol: ${isAdmin ? 'Administrador' : 'Ciudadano'}"),
                     trailing: Switch(
                       value: isAdmin,
@@ -151,35 +143,102 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     );
   }
 
-  // PESTAÑA 2: TODAS LAS INCIDENCIAS
+  // PESTAÑA 2: TODAS LAS INCIDENCIAS CON FILTRADO
   Widget _buildIncidentsList() {
     final query = FirebaseFirestore.instanceFor(
       app: Firebase.app(), 
       databaseId: 'cantillana-native'
     ).collection('incidencias').orderBy('fecha', descending: true);
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: query.snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text("Sin incidencias"));
+    return Column(
+      children: [
+        // Filtros de Estado
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          child: Row(
+            children: ["Todas", "Pendiente", "En proceso", "Resuelta"].map((status) {
+              bool isSelected = _selectedStatus == status;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: FilterChip(
+                  label: Text(status),
+                  selected: isSelected,
+                  selectedColor: Colors.orange,
+                  labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
+                  onSelected: (bool value) {
+                    setState(() => _selectedStatus = status);
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        
+        // Buscador por ID o Descripción
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+          child: TextField(
+            controller: _incidentSearchController,
+            decoration: InputDecoration(
+              hintText: "Buscar por ID o descripción...",
+              prefixIcon: const Icon(Icons.search),
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+            ),
+            onChanged: (value) => setState(() => _incidentSearchQuery = value.trim().toLowerCase()),
+          ),
+        ),
 
-        return ListView.builder(
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) {
-            var doc = snapshot.data!.docs[index];
-            var data = doc.data() as Map<String, dynamic>;
-            return ListTile(
-              leading: data['foto_url'] != null 
-                ? CircleAvatar(backgroundImage: NetworkImage(data['foto_url']))
-                : const CircleAvatar(child: Icon(Icons.report)),
-              title: Text(data['categoria'] ?? "Sin título"),
-              subtitle: Text(data['descripcion'] ?? ""),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => IncidentDetailsScreen(data: data, docId: doc.id))),
-            );
-          },
-        );
-      },
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: query.snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text("Sin incidencias"));
+
+              // FILTRADO MANUAL
+              final docs = snapshot.data!.docs.where((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final statusMatch = _selectedStatus == "Todas" || (data['estado'] ?? "Pendiente") == _selectedStatus;
+                final searchMatch = doc.id.toLowerCase().contains(_incidentSearchQuery) || 
+                                    (data['descripcion'] ?? "").toString().toLowerCase().contains(_incidentSearchQuery);
+                return statusMatch && searchMatch;
+              }).toList();
+
+              if (docs.isEmpty) return const Center(child: Text("No hay incidencias que coincidan"));
+
+              return ListView.builder(
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  var doc = docs[index];
+                  var data = doc.data() as Map<String, dynamic>;
+                  return ListTile(
+                    leading: data['foto_url'] != null 
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(data['foto_url'], width: 40, height: 40, fit: BoxFit.cover)
+                        )
+                      : const CircleAvatar(child: Icon(Icons.report)),
+                    title: Text(data['categoria'] ?? "Sin título", style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(data['descripcion'] ?? "", maxLines: 1, overflow: TextOverflow.ellipsis),
+                    trailing: Text(data['estado'] ?? "Pendiente", style: TextStyle(color: _getStatusColor(data['estado']), fontWeight: FontWeight.bold, fontSize: 10)),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => IncidentDetailsScreen(data: data, docId: doc.id))),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status) {
+      case 'Resuelta': return Colors.green;
+      case 'En proceso': return Colors.blue;
+      default: return Colors.orange;
+    }
   }
 }
