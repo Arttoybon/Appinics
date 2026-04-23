@@ -24,6 +24,8 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
   String? _assignedTo;
   String? _techSpecialty;
   List<Map<String, dynamic>> _availableTechnicians = [];
+  
+  final TextEditingController _commentController = TextEditingController();
 
   @override
   void initState() {
@@ -33,7 +35,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     _checkUserPrivileges();
   }
 
-  // Función para generar avatar dinámico
   String _getAvatarUrl(String email) {
     final String name = email.split('@')[0];
     return "https://ui-avatars.com/api/?name=$name&background=random&color=fff";
@@ -56,7 +57,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
           
           if (mounted) {
             setState(() {
-              if (rol == 'admin' || user.email == 'rosadelalbaxx@gmail.com') {
+              if (rol == 'admin' || _isSuperAdmin) {
                 _isAdmin = true;
                 _fetchTechnicians(); 
               } else if (rol == 'tecnico') {
@@ -65,23 +66,11 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
               }
             });
           }
-        } else if (user.email == 'rosadelalbaxx@gmail.com') {
-          if (mounted) {
-            setState(() {
-              _isAdmin = true;
-              _fetchTechnicians();
-            });
-          }
+        } else if (_isSuperAdmin) {
+          if (mounted) setState(() => _isAdmin = true);
         }
       } catch (e) {
-        if (user.email == 'rosadelalbaxx@gmail.com') {
-          if (mounted) {
-            setState(() {
-              _isAdmin = true;
-              _fetchTechnicians();
-            });
-          }
-        }
+        debugPrint("Error privileges: $e");
       }
     }
   }
@@ -105,6 +94,26 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     }
   }
 
+  Future<void> _addComment() async {
+    if (_commentController.text.trim().isEmpty) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+          .collection('incidencias').doc(widget.docId).collection('comentarios').add({
+        'texto': _commentController.text.trim(),
+        'autor_email': user.email,
+        'autor_uid': user.uid,
+        'fecha': FieldValue.serverTimestamp(),
+      });
+      _commentController.clear();
+      if (mounted) FocusScope.of(context).unfocus();
+    } catch (e) {
+      debugPrint("Error adding comment: $e");
+    }
+  }
+
   Future<void> _selfAssign() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -115,9 +124,8 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
             'tecnico_email': user.email,
           });
       setState(() => _assignedTo = user.uid);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Te has asignado esta incidencia"), backgroundColor: Colors.blue));
     } catch (e) {
-      debugPrint("Error in self-assignment: $e");
+      debugPrint("Error self-assigning: $e");
     }
   }
 
@@ -131,7 +139,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
             'tecnico_email': tech['email'],
           });
       setState(() => _assignedTo = techUid);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Técnico asignado"), backgroundColor: Colors.blue));
     } catch (e) {
       debugPrint("Error assigning: $e");
     }
@@ -143,9 +150,8 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
       await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
           .collection('incidencias').doc(widget.docId).update({'estado': newStatus});
       setState(() => _currentStatus = newStatus);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Estado actualizado"), backgroundColor: Colors.green));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+      debugPrint("Error status: $e");
     }
   }
 
@@ -153,22 +159,16 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     bool confirm = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("¿Eliminar incidencia?"),
-        content: const Text("Esta acción no se puede deshacer."),
+        title: const Text("¿Eliminar?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCELAR")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("ELIMINAR", style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("NO")),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("SÍ")),
         ],
       ),
     ) ?? false;
     if (confirm) {
-      try {
-        await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
-            .collection('incidencias').doc(widget.docId).delete();
-        if (mounted) Navigator.pop(context);
-      } catch (e) {
-        debugPrint("Error deleting: $e");
-      }
+      await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native').collection('incidencias').doc(widget.docId).delete();
+      if (mounted) Navigator.pop(context);
     }
   }
 
@@ -177,31 +177,35 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     final double? lng = widget.data['longitud'];
     if (lat != null && lng != null) {
       final Uri url = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) throw 'Error al abrir mapa';
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
   void _copyToClipboard() {
     Clipboard.setData(ClipboardData(text: widget.docId));
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ID copiado al portapapeles"), duration: Duration(seconds: 2), backgroundColor: Colors.blueGrey));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ID copiado")));
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
     DateTime? fecha = (widget.data['fecha'] != null) ? (widget.data['fecha'] as Timestamp).toDate() : null;
     String fechaStr = fecha != null ? DateFormat('dd/MM/yyyy HH:mm').format(fecha) : "S/F";
-    bool canChangeStatus = _isAdmin || _isTechnician;
     
-    bool canSelfAssign = _isTechnician && 
-                         _assignedTo == null && 
-                         _techSpecialty == (widget.data['categoria'] ?? "").toString().trim().toLowerCase();
+    bool canChangeStatus = _isAdmin || _isTechnician;
+    bool canSelfAssign = _isTechnician && _assignedTo == null && _techSpecialty == (widget.data['categoria'] ?? "").toString().trim().toLowerCase();
+    
+    bool canComment = _isAdmin || (_isTechnician && _assignedTo == user?.uid);
 
-    String reporterEmail = widget.data['email_usuario'] ?? "anonimo@gmail.com";
+    // Email del creador de la incidencia
+    String reporterEmail = widget.data['email_usuario'] ?? "Anónimo";
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Detalles"), backgroundColor: Colors.orange, iconTheme: const IconThemeData(color: Colors.white),
-        actions: [if (_isSuperAdmin) IconButton(icon: const Icon(Icons.delete_forever, color: Colors.white), onPressed: _deleteIncident)],
+        title: const Text("Detalles", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+        backgroundColor: Colors.orange, 
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [if (_isSuperAdmin) IconButton(icon: const Icon(Icons.delete_forever), onPressed: _deleteIncident)],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -212,29 +216,50 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (canSelfAssign) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.touch_app, color: Colors.white),
-                        label: const Text("ASIGNÁRMELA A MÍ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, padding: const EdgeInsets.all(15)),
-                        onPressed: _selfAssign,
-                      ),
+                  // CUADRO DEL CREADOR (REPORTERO)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.orange.withOpacity(0.2)),
                     ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundImage: NetworkImage(_getAvatarUrl(reporterEmail)),
+                          radius: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("REPORTADO POR:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.orange)),
+                              Text(reporterEmail, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  if (canSelfAssign) ...[
+                    SizedBox(width: double.infinity, child: ElevatedButton.icon(icon: const Icon(Icons.touch_app), label: const Text("ASIGNÁRMELA"), style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), onPressed: _selfAssign)),
                     const SizedBox(height: 20),
                   ],
 
                   if (_isAdmin) ...[
-                    const Text("ASIGNAR A TÉCNICO", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                    const Text("ASIGNAR A TÉCNICO", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 12)),
                     DropdownButton<String>(
-                      hint: Text(_availableTechnicians.isEmpty ? "No hay técnicos de ${widget.data['categoria']}" : "Elegir Técnico"),
+                      hint: Text(_availableTechnicians.isEmpty ? "Sin técnicos" : "Elegir Técnico"),
                       value: _assignedTo, isExpanded: true,
                       items: _availableTechnicians.map((t) => DropdownMenuItem<String>(
                         value: t['uid'].toString(), 
                         child: Text(t['email'].toString())
                       )).toList(),
-                      onChanged: _availableTechnicians.isEmpty ? null : _assignTechnician,
+                      onChanged: _assignTechnician,
                     ),
                     const Divider(height: 30),
                   ] else if (widget.data['tecnico_email'] != null) ...[
@@ -243,70 +268,80 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                   ],
 
                   if (canChangeStatus) ...[
-                    const Text("GESTIÓN DE ESTADO", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                    const Text("GESTIÓN DE ESTADO", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 12)),
                     DropdownButton<String>(
                       value: _currentStatus, isExpanded: true,
                       items: ['Pendiente', 'En proceso', 'Resuelta'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
                       onChanged: _updateStatus,
                     ),
                   ] else ...[
-                    Text("ESTADO: $_currentStatus", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    Text("ESTADO ACTUAL: $_currentStatus", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                   
                   const Divider(height: 30),
                   
-                  // Cuadro del Reportero con Foto de Perfil
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.grey[300]!)
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            CircleAvatar(backgroundImage: NetworkImage(_getAvatarUrl(reporterEmail)), radius: 18),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text("Reportado por:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey)),
-                                  Text(reporterEmail, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
-                                ],
+                  // Información General
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Categoría: ${widget.data['categoria']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      InkWell(
+                        onTap: _copyToClipboard,
+                        child: Row(children: [Text("#${widget.docId.substring(0,6)}", style: const TextStyle(color: Colors.grey, fontSize: 12)), const SizedBox(width: 4), const Icon(Icons.copy, size: 12, color: Colors.grey)]),
+                      ),
+                    ],
+                  ),
+                  Text("Fecha: $fechaStr", style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                  const SizedBox(height: 15),
+                  const Text("Descripción:", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(widget.data['descripcion'] ?? "Sin descripción"),
+                  const SizedBox(height: 20),
+                  if (widget.data['latitud'] != null) ElevatedButton.icon(onPressed: _openMap, icon: const Icon(Icons.map, color: Colors.white), label: const Text("VER UBICACIÓN", style: TextStyle(color: Colors.white)), style: ElevatedButton.styleFrom(backgroundColor: Colors.orange)),
+                  
+                  const Divider(height: 40),
+                  const Text("COMENTARIOS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.blueGrey)),
+                  const SizedBox(height: 10),
+
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+                        .collection('incidencias').doc(widget.docId).collection('comentarios')
+                        .orderBy('fecha', descending: false).snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const SizedBox();
+                      return Column(
+                        children: snapshot.data!.docs.map((doc) {
+                          var cData = doc.data() as Map<String, dynamic>;
+                          String email = cData['autor_email'] ?? "Anónimo";
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(backgroundImage: NetworkImage(_getAvatarUrl(email)), radius: 15),
+                            title: Text(email, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            subtitle: Text(cData['texto'] ?? ""),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+
+                  if (canComment) 
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _commentController,
+                              decoration: InputDecoration(
+                                hintText: "Añadir comentario...",
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                                isDense: true,
                               ),
                             ),
-                          ],
-                        ),
-                        const Divider(height: 20),
-                        InkWell(
-                          onTap: _copyToClipboard,
-                          child: Row(
-                            children: [
-                              const Icon(Icons.fingerprint, size: 16, color: Colors.orange),
-                              const SizedBox(width: 5),
-                              const Text("ID Reporte:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey)),
-                              const SizedBox(width: 5),
-                              Expanded(child: Text("#${widget.docId}", style: const TextStyle(fontSize: 11, color: Colors.black54, fontFamily: 'monospace'), overflow: TextOverflow.ellipsis)),
-                              const Icon(Icons.copy, size: 14, color: Colors.grey),
-                            ],
                           ),
-                        ),
-                      ],
+                          IconButton(icon: const Icon(Icons.send, color: Colors.orange), onPressed: _addComment),
+                        ],
+                      ),
                     ),
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  Text("Categoría: ${widget.data['categoria']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text("Fecha: $fechaStr", style: const TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 20),
-                  const Text("Descripción:", style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(widget.data['descripcion'] ?? ""),
-                  const SizedBox(height: 30),
-                  if (widget.data['latitud'] != null) ElevatedButton.icon(onPressed: _openMap, icon: const Icon(Icons.map), label: const Text("Ver en Mapa")),
                 ],
               ),
             ),
