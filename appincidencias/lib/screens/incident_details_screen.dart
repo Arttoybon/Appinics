@@ -17,31 +17,45 @@ class IncidentDetailsScreen extends StatefulWidget {
 
 class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
   bool _isAdmin = false;
+  bool _isTechnician = false; // Nueva detección
+  bool _isSuperAdmin = false;
   String? _currentStatus;
 
   @override
   void initState() {
     super.initState();
     _currentStatus = widget.data['estado'] ?? 'Pendiente';
-    _checkAdminStatus();
+    _checkUserPrivileges();
   }
 
-  Future<void> _checkAdminStatus() async {
+  Future<void> _checkUserPrivileges() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
+      if (user.email == 'rosadelalbaxx@gmail.com') {
+        if (mounted) setState(() => _isSuperAdmin = true);
+      }
+      
       try {
         final doc = await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
             .collection('usuarios').doc(user.uid).get();
+            
         if (doc.exists) {
           String? rol = doc.data()?['rol']?.toString().trim().toLowerCase();
-          if (rol == 'admin' || user.email == 'rosadelalbaxx@gmail.com') {
-            if (mounted) setState(() => _isAdmin = true);
+          
+          if (mounted) {
+            setState(() {
+              if (rol == 'admin' || _isSuperAdmin) {
+                _isAdmin = true;
+              } else if (rol == 'tecnico') {
+                _isTechnician = true;
+              }
+            });
           }
-        } else if (user.email == 'rosadelalbaxx@gmail.com') {
+        } else if (_isSuperAdmin) {
           if (mounted) setState(() => _isAdmin = true);
         }
       } catch (e) {
-        if (user.email == 'rosadelalbaxx@gmail.com') {
+        if (_isSuperAdmin) {
           if (mounted) setState(() => _isAdmin = true);
         }
       }
@@ -60,6 +74,33 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     }
   }
 
+  Future<void> _deleteIncident() async {
+    bool confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("¿Eliminar incidencia?"),
+        content: const Text("Esta acción no se puede deshacer."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCELAR")),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("ELIMINAR", style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    ) ?? false;
+
+    if (confirm) {
+      try {
+        await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('incidencias').doc(widget.docId).delete();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Incidencia eliminada"), backgroundColor: Colors.red));
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error al eliminar: $e")));
+      }
+    }
+  }
+
   Future<void> _openMap() async {
     final double? lat = widget.data['latitud'];
     final double? lng = widget.data['longitud'];
@@ -74,8 +115,19 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     DateTime? fecha = (widget.data['fecha'] != null) ? (widget.data['fecha'] as Timestamp).toDate() : null;
     String fechaStr = fecha != null ? DateFormat('dd/MM/yyyy HH:mm').format(fecha) : "S/F";
 
+    // Un Admin o un Técnico pueden cambiar el estado
+    bool canChangeStatus = _isAdmin || _isTechnician;
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Detalles"), backgroundColor: Colors.orange, iconTheme: const IconThemeData(color: Colors.white)),
+      appBar: AppBar(
+        title: const Text("Detalles"), 
+        backgroundColor: Colors.orange, 
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          if (_isSuperAdmin)
+            IconButton(icon: const Icon(Icons.delete_forever, color: Colors.white), onPressed: _deleteIncident),
+        ],
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -85,8 +137,11 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_isAdmin) ...[
-                    const Text("ESTADO (ADMIN)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                  if (canChangeStatus) ...[
+                    Text(
+                      _isAdmin ? "GESTIÓN DE ESTADO (ADMIN)" : "GESTIÓN DE ESTADO (TÉCNICO)", 
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)
+                    ),
                     DropdownButton<String>(
                       value: _currentStatus,
                       isExpanded: true,

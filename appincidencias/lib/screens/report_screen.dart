@@ -1,6 +1,7 @@
 import 'package:appincidencias/screens/login_screen.dart'; 
 import 'package:appincidencias/screens/my_incidents_screen.dart';
 import 'package:appincidencias/screens/admin_panel_screen.dart';
+import 'package:appincidencias/screens/technician_panel_screen.dart'; // Añadido
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -25,6 +26,8 @@ class _ReportScreenState extends State<ReportScreen> {
   XFile? _imagenSeleccionada;
   bool _isLoading = false;
   bool _isAdmin = false;
+  bool _isTechnician = false; // Nueva variable
+  String? _especialidad; // Especialidad del técnico
   Position? _currentPosition;
   
   final ImagePicker _picker = ImagePicker();
@@ -41,22 +44,27 @@ class _ReportScreenState extends State<ReportScreen> {
   void initState() {
     super.initState();
     _determinePosition();
-    _checkAdminStatus();
+    _checkUserRole();
   }
 
-  Future<void> _checkAdminStatus() async {
+  Future<void> _checkUserRole() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        final doc = await FirebaseFirestore.instanceFor(
-          app: Firebase.app(),
-          databaseId: 'cantillana-native',
-        ).collection('usuarios').doc(user.uid).get();
+        final doc = await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('usuarios').doc(user.uid).get();
 
         if (doc.exists) {
-          String? rol = doc.data()?['rol']?.toString().trim().toLowerCase();
+          final data = doc.data();
+          String? rol = data?['rol']?.toString().trim().toLowerCase();
+          
           if (rol == 'admin' || user.email == 'rosadelalbaxx@gmail.com') {
             if (mounted) setState(() => _isAdmin = true);
+          } else if (rol == 'tecnico') {
+            if (mounted) setState(() {
+              _isTechnician = true;
+              _especialidad = data?['especialidad'];
+            });
           }
         } else if (user.email == 'rosadelalbaxx@gmail.com') {
           if (mounted) setState(() => _isAdmin = true);
@@ -124,6 +132,14 @@ class _ReportScreenState extends State<ReportScreen> {
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyIncidentsScreen())),
         ),
         actions: [
+          // BOTÓN DE TÉCNICO (Engranajes)
+          if (_isTechnician && _especialidad != null)
+            IconButton(
+              icon: const Icon(Icons.engineering, color: Colors.white),
+              tooltip: 'Panel de Técnico',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TechnicianPanelScreen(especialidad: _especialidad!))),
+            ),
+          // BOTÓN DE ADMIN (Escudo)
           if (_isAdmin)
             IconButton(
               icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
