@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Añadido para Settings
 import 'package:appincidencias/firebase_options.dart';
 // Importamos las pantallas usando la ruta del paquete (la más segura)
 import 'package:appincidencias/screens/login_screen.dart';
@@ -13,6 +14,16 @@ void main() async {
   // 2. Inicializa Firebase con las opciones de tu proyecto
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Configurar Firestore para usar la base de datos específica 'cantillana0ayunt'
+  // y forzar el host de Google para evitar errores de región
+  FirebaseFirestore.instanceFor(
+    app: Firebase.app(),
+    databaseId: 'cantillana0ayunt',
+  ).settings = const Settings(
+    persistenceEnabled: true,
+    host: 'firestore.googleapis.com',
   );
   
   runApp(const CantillanaReportApp());
