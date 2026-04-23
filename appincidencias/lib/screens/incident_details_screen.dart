@@ -17,14 +17,18 @@ class IncidentDetailsScreen extends StatefulWidget {
 
 class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
   bool _isAdmin = false;
-  bool _isTechnician = false; // Nueva detección
+  bool _isTechnician = false;
   bool _isSuperAdmin = false;
   String? _currentStatus;
+  String? _assignedTo;
+  String? _techSpecialty;
+  List<Map<String, dynamic>> _availableTechnicians = [];
 
   @override
   void initState() {
     super.initState();
     _currentStatus = widget.data['estado'] ?? 'Pendiente';
+    _assignedTo = widget.data['asignado_a_uid'];
     _checkUserPrivileges();
   }
 
@@ -40,14 +44,17 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
             .collection('usuarios').doc(user.uid).get();
             
         if (doc.exists) {
-          String? rol = doc.data()?['rol']?.toString().trim().toLowerCase();
+          final data = doc.data();
+          String? rol = data?['rol']?.toString().trim().toLowerCase();
           
           if (mounted) {
             setState(() {
               if (rol == 'admin' || _isSuperAdmin) {
                 _isAdmin = true;
+                _fetchTechnicians(); 
               } else if (rol == 'tecnico') {
                 _isTechnician = true;
+                _techSpecialty = data?['especialidad']?.toString().trim().toLowerCase();
               }
             });
           }
@@ -55,10 +62,66 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
           if (mounted) setState(() => _isAdmin = true);
         }
       } catch (e) {
-        if (_isSuperAdmin) {
-          if (mounted) setState(() => _isAdmin = true);
+        debugPrint("Error privileges: $e");
+      }
+    }
+  }
+
+  Future<void> _fetchTechnicians() async {
+    final String categoriaIncidencia = (widget.data['categoria'] ?? "").toString().trim().toLowerCase();
+    try {
+      final query = await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+          .collection('usuarios').get();
+
+      final List<Map<String, dynamic>> techList = [];
+      for (var doc in query.docs) {
+        final data = doc.data();
+        if (data['rol'] == 'tecnico' && data['especialidad']?.toString().trim().toLowerCase() == categoriaIncidencia) {
+          techList.add({'uid': doc.id, 'email': data['email'] ?? "Sin email"});
         }
       }
+      if (mounted) setState(() => _availableTechnicians = techList);
+    } catch (e) {
+      debugPrint("Error fetching technicians: $e");
+    }
+  }
+
+  Future<void> _selfAssign() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+          .collection('incidencias').doc(widget.docId).update({
+            'asignado_a_uid': user.uid,
+            'tecnico_email': user.email,
+          });
+      
+      setState(() => _assignedTo = user.uid);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Te has asignado esta incidencia"), backgroundColor: Colors.blue)
+        );
+      }
+    } catch (e) {
+      debugPrint("Error in self-assignment: $e");
+    }
+  }
+
+  Future<void> _assignTechnician(String? techUid) async {
+    if (techUid == null) return;
+    try {
+      final tech = _availableTechnicians.firstWhere((t) => t['uid'] == techUid);
+      await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+          .collection('incidencias').doc(widget.docId).update({
+            'asignado_a_uid': techUid,
+            'tecnico_email': tech['email'],
+          });
+      
+      setState(() => _assignedTo = techUid);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Técnico asignado"), backgroundColor: Colors.blue));
+    } catch (e) {
+      debugPrint("Error assigning: $e");
     }
   }
 
@@ -86,17 +149,13 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
         ],
       ),
     ) ?? false;
-
     if (confirm) {
       try {
         await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
             .collection('incidencias').doc(widget.docId).delete();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Incidencia eliminada"), backgroundColor: Colors.red));
-          Navigator.pop(context);
-        }
+        if (mounted) Navigator.pop(context);
       } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error al eliminar: $e")));
+        debugPrint("Error deleting: $e");
       }
     }
   }
@@ -114,19 +173,17 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
   Widget build(BuildContext context) {
     DateTime? fecha = (widget.data['fecha'] != null) ? (widget.data['fecha'] as Timestamp).toDate() : null;
     String fechaStr = fecha != null ? DateFormat('dd/MM/yyyy HH:mm').format(fecha) : "S/F";
-
-    // Un Admin o un Técnico pueden cambiar el estado
     bool canChangeStatus = _isAdmin || _isTechnician;
+    
+    // El técnico puede auto-asignarse si la incidencia no tiene dueño y es de su especialidad
+    bool canSelfAssign = _isTechnician && 
+                         _assignedTo == null && 
+                         _techSpecialty == (widget.data['categoria'] ?? "").toString().trim().toLowerCase();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Detalles"), 
-        backgroundColor: Colors.orange, 
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          if (_isSuperAdmin)
-            IconButton(icon: const Icon(Icons.delete_forever, color: Colors.white), onPressed: _deleteIncident),
-        ],
+        title: const Text("Detalles"), backgroundColor: Colors.orange, iconTheme: const IconThemeData(color: Colors.white),
+        actions: [if (_isSuperAdmin) IconButton(icon: const Icon(Icons.delete_forever), onPressed: _deleteIncident)],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -137,20 +194,48 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (canChangeStatus) ...[
-                    Text(
-                      _isAdmin ? "GESTIÓN DE ESTADO (ADMIN)" : "GESTIÓN DE ESTADO (TÉCNICO)", 
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)
+                  // BOTÓN DE AUTO-ASIGNACIÓN PARA TÉCNICOS
+                  if (canSelfAssign) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.touch_app, color: Colors.white),
+                        label: const Text("ASIGNÁRMELA A MÍ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, padding: const EdgeInsets.all(15)),
+                        onPressed: _selfAssign,
+                      ),
                     ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  if (_isAdmin) ...[
+                    const Text("ASIGNAR A TÉCNICO", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
                     DropdownButton<String>(
-                      value: _currentStatus,
-                      isExpanded: true,
+                      hint: Text(_availableTechnicians.isEmpty ? "No hay técnicos compatibles" : "Elegir Técnico"),
+                      value: _assignedTo, isExpanded: true,
+                      items: _availableTechnicians.map((t) => DropdownMenuItem<String>(
+                        value: t['uid'].toString(), 
+                        child: Text(t['email'].toString())
+                      )).toList(),
+                      onChanged: _availableTechnicians.isEmpty ? null : _assignTechnician,
+                    ),
+                    const Divider(height: 30),
+                  ] else if (widget.data['tecnico_email'] != null) ...[
+                    Text("ASIGNADO A: ${widget.data['tecnico_email']}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                    const Divider(height: 30),
+                  ],
+
+                  if (canChangeStatus) ...[
+                    const Text("GESTIÓN DE ESTADO", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                    DropdownButton<String>(
+                      value: _currentStatus, isExpanded: true,
                       items: ['Pendiente', 'En proceso', 'Resuelta'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
                       onChanged: _updateStatus,
                     ),
                   ] else ...[
                     Text("ESTADO: $_currentStatus", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                   ],
+                  
                   const Divider(height: 30),
                   Text("Categoría: ${widget.data['categoria']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   Text("Fecha: $fechaStr", style: const TextStyle(color: Colors.grey)),
@@ -158,8 +243,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                   const Text("Descripción:", style: TextStyle(fontWeight: FontWeight.bold)),
                   Text(widget.data['descripcion'] ?? ""),
                   const SizedBox(height: 30),
-                  if (widget.data['latitud'] != null)
-                    ElevatedButton.icon(onPressed: _openMap, icon: const Icon(Icons.map), label: const Text("Ver en Mapa")),
+                  if (widget.data['latitud'] != null) ElevatedButton.icon(onPressed: _openMap, icon: const Icon(Icons.map), label: const Text("Ver en Mapa")),
                 ],
               ),
             ),
