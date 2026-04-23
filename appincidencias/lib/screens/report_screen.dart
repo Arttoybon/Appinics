@@ -1,4 +1,5 @@
-import 'package:appincidencias/screens/login_screen.dart'; // Importado para navegación forzada
+import 'package:appincidencias/screens/login_screen.dart'; 
+import 'package:appincidencias/screens/my_incidents_screen.dart'; // Añadido para ver historial
 import 'package:flutter/foundation.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io'; // Para Mobile
@@ -86,6 +87,16 @@ class _ReportScreenState extends State<ReportScreen> {
         title: const Text("Nuevo Reporte", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.orange,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.list_alt, color: Colors.white),
+          tooltip: 'Mis Incidencias',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MyIncidentsScreen()),
+            );
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
