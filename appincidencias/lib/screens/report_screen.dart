@@ -170,9 +170,27 @@ class _ReportScreenState extends State<ReportScreen> {
             const SizedBox(height: 25),
             TextField(controller: _descController, maxLines: 4, decoration: InputDecoration(hintText: "Descripción...", border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)))),
             const SizedBox(height: 25),
-            if (_imagenSeleccionada != null) 
-              ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.network(_imagenSeleccionada!.path, height: 200, width: double.infinity, fit: BoxFit.cover)),
-            ElevatedButton.icon(onPressed: _tomarFoto, icon: const Icon(Icons.camera_alt), label: const Text("Añadir Foto")),
+            const Text("3. Evidencia visual", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 10),
+            Center(
+              child: Column(
+                children: [
+                  if (_imagenSeleccionada != null) 
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: kIsWeb 
+                        ? Image.network(_imagenSeleccionada!.path, height: 200, width: double.infinity, fit: BoxFit.cover)
+                        : Image.file(File(_imagenSeleccionada!.path), height: 200, width: double.infinity, fit: BoxFit.cover),
+                    ),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    onPressed: _tomarFoto,
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text("Añadir Foto"),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
             Row(children: [Icon(Icons.location_on, color: _currentPosition != null ? Colors.green : Colors.grey), Text(_currentPosition != null ? " Ubicación lista" : " Obteniendo GPS...")]),
             const SizedBox(height: 30),
