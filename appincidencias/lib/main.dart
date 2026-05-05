@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; 
+import 'package:google_sign_in/google_sign_in.dart'; // Añadido
 import 'package:appincidencias/firebase_options.dart';
 
 void main() async {
@@ -73,6 +74,48 @@ class AuthWrapper extends StatelessWidget {
               if (userSnapshot.hasData && userSnapshot.data!.exists) {
                 final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
                 final String? dni = userData?['dni'];
+                final bool isBlocked = userData?['estaBloqueado'] == true;
+                final bool isDeleted = userData?['fueEliminado'] == true;
+
+                if (isBlocked || isDeleted) {
+                  // Pequeño delay para evitar conflictos de navegación
+                  Future.delayed(Duration.zero, () async {
+                    await GoogleSignIn().signOut();
+                    await FirebaseAuth.instance.signOut();
+                  });
+                  return Scaffold(
+                    body: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.lock_person, size: 80, color: Colors.red),
+                            const SizedBox(height: 20),
+                            const Text(
+                              "Acceso Restringido",
+                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              "Su usuario ha sido bloqueado por un administrador, contacte con alguno para resolver este problema",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            const SizedBox(height: 30),
+                            ElevatedButton(
+                              onPressed: () async {
+                                await GoogleSignIn().signOut();
+                                await FirebaseAuth.instance.signOut();
+                              },
+                              child: const Text("Volver al Login"),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
 
                 if (dni != null && dni.isNotEmpty) {
                   return const ReportScreen();

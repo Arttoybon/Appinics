@@ -47,7 +47,57 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     }
   }
 
-  void _showRoleDialog(String uid, String email, String currentRol, String? currentEspecialidad) {
+  Future<void> _toggleBlockUser(String uid, bool currentStatus) async {
+    if (uid == FirebaseAuth.instance.currentUser?.uid) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No puedes bloquearte a ti mismo")));
+      return;
+    }
+    try {
+      await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+          .collection('usuarios').doc(uid).update({'estaBloqueado': !currentStatus});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(!currentStatus ? "Usuario BLOQUEADO" : "Usuario DESBLOQUEADO"),
+          backgroundColor: !currentStatus ? Colors.red : Colors.green
+        ));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
+
+  Future<void> _deleteUser(String uid) async {
+    if (uid == FirebaseAuth.instance.currentUser?.uid) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No puedes eliminarte a ti mismo")));
+      return;
+    }
+
+    bool confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("¿Eliminar usuario?"),
+        content: const Text("Esta acción desactivará la cuenta permanentemente."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCELAR")),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("ELIMINAR", style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    ) ?? false;
+
+    if (confirm) {
+      try {
+        await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('usuarios').doc(uid).update({'fueEliminado': true});
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Usuario eliminado correctamente"), backgroundColor: Colors.red));
+        }
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    }
+  }
+
+  void _showRoleDialog(String uid, String email, String currentRol, String? currentEspecialidad, bool isBlocked) {
     String selectedRol = currentRol;
     String? selectedEspecialidad = currentEspecialidad;
 
@@ -90,10 +140,33 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   onChanged: (v) => setDialogState(() => selectedEspecialidad = v),
                 ),
               ],
+              const Divider(height: 30),
+              const Text("MODERACIÓN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.grey)),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _toggleBlockUser(uid, isBlocked);
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: isBlocked ? Colors.green : Colors.red),
+                    child: Text(isBlocked ? "DESBLOQUEAR" : "BLOQUEAR", style: const TextStyle(color: Colors.white, fontSize: 10)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_forever, color: Colors.red),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _deleteUser(uid);
+                    },
+                  )
+                ],
+              ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCELAR")),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("CERRAR")),
             ElevatedButton(
               onPressed: () {
                 if (selectedRol == 'tecnico' && selectedEspecialidad == null) {
@@ -161,7 +234,12 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           stream: query.snapshots(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            final docs = snapshot.data!.docs.where((d) => (d.data() as Map)['email'].toString().toLowerCase().contains(_searchQuery)).toList();
+            final docs = snapshot.data!.docs.where((d) {
+              final data = d.data() as Map<String, dynamic>;
+              bool emailMatch = data['email'].toString().toLowerCase().contains(_searchQuery);
+              bool notDeleted = data['fueEliminado'] != true;
+              return emailMatch && notDeleted;
+            }).toList();
             
             return ListView.builder(
               itemCount: docs.length,
@@ -170,17 +248,28 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                 String email = data['email'] ?? "";
                 String rol = data['rol'] ?? 'user';
                 String? esp = data['especialidad'];
+                bool isBlocked = data['estaBloqueado'] == true;
 
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  color: isBlocked ? Colors.red[50] : null,
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundImage: NetworkImage(_getAvatarUrl(email)),
+                      child: isBlocked ? const Icon(Icons.block, color: Colors.red, size: 30) : null,
                     ),
-                    title: Text(email, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    title: Row(
+                      children: [
+                        Text(email, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        if (isBlocked) ...[
+                          const SizedBox(width: 8),
+                          const Text("BLOQUEADO", style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ]
+                      ],
+                    ),
                     subtitle: Text("Rol: ${rol.toUpperCase()} ${esp != null ? '($esp)' : ''}"),
                     trailing: const Icon(Icons.edit, size: 20),
-                    onTap: () => _showRoleDialog(docs[index].id, email, rol, esp),
+                    onTap: () => _showRoleDialog(docs[index].id, email, rol, esp, isBlocked),
                   ),
                 );
               },

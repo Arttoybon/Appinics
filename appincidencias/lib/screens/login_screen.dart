@@ -66,30 +66,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       await FirebaseAuth.instance.signInWithCredential(credential);
 
-      // Guardar/Actualizar datos del usuario en la colección 'usuarios'
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        debugPrint("--- REGISTRANDO USUARIO GOOGLE EN DB: cantillana-native ---");
-        try {
-          await FirebaseFirestore.instanceFor(
-            app: Firebase.app(),
-            databaseId: 'cantillana-native',
-          ).collection('usuarios').doc(user.uid).set({
-            'email': user.email,
-            'uid': user.uid,
-          }, SetOptions(merge: true));
-          debugPrint("--- REGISTRO GOOGLE EXITOSO ---");
-        } catch (e) {
-          debugPrint("--- ERROR AL REGISTRAR USUARIO GOOGLE: $e ---");
-        }
-      }
-
       if (mounted) {
         debugPrint("Logueado con éxito en Firebase");
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ReportScreen()),
-        );
       }
     } catch (e) {
       if (mounted) {
@@ -123,31 +101,6 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
-      // Guardar/Actualizar datos del usuario en la colección 'usuarios'
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        debugPrint("--- REGISTRANDO USUARIO EN DB: cantillana-native ---");
-        try {
-          await FirebaseFirestore.instanceFor(
-            app: Firebase.app(),
-            databaseId: 'cantillana-native',
-          ).collection('usuarios').doc(user.uid).set({
-            'email': user.email,
-            'uid': user.uid,
-          }, SetOptions(merge: true));
-          debugPrint("--- REGISTRO EXITOSO ---");
-        } catch (e) {
-          debugPrint("--- ERROR AL REGISTRAR USUARIO: $e ---");
-        }
-      }
-
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ReportScreen()),
-        );
-      }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       String message = "Error en el login";
