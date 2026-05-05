@@ -30,9 +30,10 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _initWeb();
     _googleSignIn.onCurrentUserChanged.listen((GoogleSignInAccount? account) {
-      _handleGoogleSignInResult(account);
+      if (account != null) {
+        _handleGoogleSignInResult(account);
+      }
     });
-    _googleSignIn.signInSilently();
   }
 
   Future<void> _initWeb() async {
