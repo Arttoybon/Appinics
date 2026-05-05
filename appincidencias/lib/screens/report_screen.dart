@@ -137,14 +137,25 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Future<void> _enviarReporte() async {
-    if (_categoriaSeleccionada == null || _descController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Rellena todos los campos")));
+    // Verificamos que todos los campos estén completos: Categoría, Descripción, Imagen y Ubicación
+    if (_categoriaSeleccionada == null ||
+        _descController.text.trim().isEmpty ||
+        _imagenSeleccionada == null ||
+        _currentPosition == null) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⚠️ Por favor, completa todos los campos (Categoría, Descripción, Foto y Ubicación)"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
       return;
     }
+
     setState(() => _isLoading = true);
     bool exito = await _apiService.enviarIncidenciaCompleta(
       categoria: _categoriaSeleccionada!,
-      descripcion: _descController.text,
+      descripcion: _descController.text.trim(),
       imagen: _imagenSeleccionada,
       latitud: _currentPosition?.latitude,
       longitud: _currentPosition?.longitude,

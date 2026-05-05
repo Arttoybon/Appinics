@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; 
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+// Eliminadas librerías de mapas para permitir compilación ante error de cache
 
 class IncidentDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -186,56 +187,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
         setState(() => _currentDescription = descEditController.text.trim());
       } catch (e) {
         debugPrint("Error updating description: $e");
-      }
-    }
-  }
-
-  Future<void> _editLocation() async {
-    final TextEditingController latController = TextEditingController(text: _currentLat?.toString() ?? "");
-    final TextEditingController lngController = TextEditingController(text: _currentLng?.toString() ?? "");
-
-    bool confirm = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Editar Ubicación"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: latController,
-              decoration: const InputDecoration(labelText: "Latitud"),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-            TextField(
-              controller: lngController,
-              decoration: const InputDecoration(labelText: "Longitud"),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCELAR")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("GUARDAR")),
-        ],
-      ),
-    ) ?? false;
-
-    if (confirm) {
-      double? newLat = double.tryParse(latController.text.trim());
-      double? newLng = double.tryParse(lngController.text.trim());
-
-      try {
-        await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
-            .collection('incidencias').doc(widget.docId).update({
-              'latitud': newLat,
-              'longitud': newLng,
-            });
-        setState(() {
-          _currentLat = newLat;
-          _currentLng = newLng;
-        });
-      } catch (e) {
-        debugPrint("Error updating location: $e");
       }
     }
   }
@@ -451,16 +402,11 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                   Text(_currentDescription ?? "Sin descripción"),
                   const SizedBox(height: 20),
                   if (_currentLat != null && _currentLng != null)
-                    Row(
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: _openMap,
-                          icon: const Icon(Icons.map, color: Colors.white),
-                          label: const Text("ABRIR EN GOOGLE MAPS", style: TextStyle(color: Colors.white)),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                        ),
-                        if (_isAdmin) IconButton(icon: const Icon(Icons.edit_location_alt, color: Colors.blue), onPressed: _editLocation),
-                      ],
+                    ElevatedButton.icon(
+                      onPressed: _openMap,
+                      icon: const Icon(Icons.map, color: Colors.white),
+                      label: const Text("ABRIR EN GOOGLE MAPS", style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                     )
                   else
                     Container(
@@ -470,17 +416,16 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: Colors.grey[300]!),
                       ),
-                      child: Row(
+                      child: const Row(
                         children: [
-                          const Icon(Icons.location_off, color: Colors.grey),
-                          const SizedBox(width: 10),
-                          const Expanded(
+                          Icon(Icons.location_off, color: Colors.grey),
+                          SizedBox(width: 10),
+                          Expanded(
                             child: Text(
                               "Esta incidencia no tiene ubicación guardada",
                               style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
                             ),
                           ),
-                          if (_isAdmin) IconButton(icon: const Icon(Icons.add_location_alt, color: Colors.blue), onPressed: _editLocation),
                         ],
                       ),
                     ),
