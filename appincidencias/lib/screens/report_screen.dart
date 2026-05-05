@@ -29,7 +29,9 @@ class _ReportScreenState extends State<ReportScreen> {
   bool _isTechnician = false; // Nueva variable
   String? _especialidad; // Especialidad del técnico
   Position? _currentPosition;
-  
+  bool _isLocationLoading = false;
+  String? _locationError;
+
   final ImagePicker _picker = ImagePicker();
   final ApiService _apiService = ApiService();
 
@@ -78,24 +80,59 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Future<void> _determinePosition() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
-    }
-    if (permission == LocationPermission.deniedForever) return; 
+    if (!mounted) return;
+    setState(() {
+      _isLocationLoading = true;
+      _locationError = null;
+    });
+
     try {
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      if (mounted) setState(() => _currentPosition = position);
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw 'Servicio de ubicación desactivado';
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw 'Permiso de ubicación denegado';
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw 'Permiso bloqueado. Actívalo en el candado de la barra de direcciones.';
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+          _isLocationLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint("Error ubicación: $e");
+      if (mounted) {
+        setState(() {
+          _locationError = e.toString().replaceAll("Exception: ", "");
+          _isLocationLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _tomarFoto() async {
-    final XFile? photo = await _picker.pickImage(source: kIsWeb ? ImageSource.gallery : ImageSource.camera, imageQuality: 50);
+    final XFile? photo = await _picker.pickImage(
+      source: kIsWeb ? ImageSource.gallery : ImageSource.camera,
+      imageQuality: 90,
+      maxWidth: 1920,
+      maxHeight: 1080,
+    );
     if (photo != null) setState(() => _imagenSeleccionada = photo);
   }
 
@@ -195,7 +232,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(15),
                       child: kIsWeb 
-                        ? Image.network(_imagenSeleccionada!.path, height: 200, width: double.infinity, fit: BoxFit.cover)
+                        ? Image.network(_imagenSeleccionada!.path, height: 200, width: double.infinity, fit: BoxFit.cover, filterQuality: FilterQuality.medium)
                         : Image.file(File(_imagenSeleccionada!.path), height: 200, width: double.infinity, fit: BoxFit.cover),
                     ),
                   const SizedBox(height: 10),
@@ -208,7 +245,48 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            Row(children: [Icon(Icons.location_on, color: _currentPosition != null ? Colors.green : Colors.grey), Text(_currentPosition != null ? " Ubicación lista" : " Obteniendo GPS...")]),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _currentPosition != null ? Icons.location_on : Icons.location_off,
+                        color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.grey),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _currentPosition != null
+                            ? "Ubicación lista"
+                            : (_isLocationLoading ? "Obteniendo GPS..." : (_locationError ?? "Ubicación no disponible")),
+                          style: TextStyle(
+                            color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.black87),
+                            fontWeight: _currentPosition != null ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                      if (!_isLocationLoading && _currentPosition == null)
+                        TextButton.icon(
+                          onPressed: _determinePosition,
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: const Text("Reintentar"),
+                        ),
+                    ],
+                  ),
+                  if (_isLocationLoading)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8.0),
+                      child: LinearProgressIndicator(minHeight: 2),
+                    ),
+                ],
+              ),
+            ),
             const SizedBox(height: 30),
             SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _isLoading ? null : _enviarReporte, style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENVIAR", style: TextStyle(color: Colors.white)))),
           ],

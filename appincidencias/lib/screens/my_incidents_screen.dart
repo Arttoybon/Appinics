@@ -53,7 +53,16 @@ class _MyIncidentsScreenState extends State<MyIncidentsScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 child: ListTile(
                   leading: data['foto_url'] != null 
-                    ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(data['foto_url'], width: 50, height: 50, fit: BoxFit.cover))
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          data['foto_url'],
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.medium,
+                        ),
+                      )
                     : const Icon(Icons.report, color: Colors.orange),
                   title: Text(data['categoria'] ?? "Sin título", style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text("${data['descripcion']}\n$fechaStr"),

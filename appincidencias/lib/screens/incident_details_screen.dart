@@ -1,3 +1,4 @@
+import 'package:appincidencias/screens/user_profile_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -186,6 +187,41 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ID copiado")));
   }
 
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: const Text("Vista previa", style: TextStyle(color: Colors.white)),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+                filterQuality: FilterQuality.medium,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const Center(child: CircularProgressIndicator(color: Colors.white));
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -210,37 +246,68 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            if (widget.data['foto_url'] != null) Image.network(widget.data['foto_url'], width: double.infinity, height: 250, fit: BoxFit.cover),
+            if (widget.data['foto_url'] != null)
+              GestureDetector(
+                onTap: () => _showFullScreenImage(context, widget.data['foto_url']),
+                child: Hero(
+                  tag: widget.docId,
+                  child: Image.network(
+                    widget.data['foto_url'],
+                    width: double.infinity,
+                    height: 250,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.medium,
+                  ),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // CUADRO DEL CREADOR (REPORTERO)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.orange.withOpacity(0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundImage: NetworkImage(_getAvatarUrl(reporterEmail)),
-                          radius: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text("REPORTADO POR:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.orange)),
-                              Text(reporterEmail, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                            ],
+                  InkWell(
+                    onTap: (canChangeStatus || _isAdmin) && widget.data['uid_usuario'] != null
+                      ? () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UserProfileScreen(
+                              userId: widget.data['uid_usuario'],
+                              userEmail: reporterEmail,
+                            ),
                           ),
-                        ),
-                      ],
+                        )
+                      : null,
+                    borderRadius: BorderRadius.circular(15),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.orange.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundImage: NetworkImage(_getAvatarUrl(reporterEmail)),
+                            radius: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("REPORTADO POR:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.orange)),
+                                Text(reporterEmail, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                if ((canChangeStatus || _isAdmin) && widget.data['uid_usuario'] != null)
+                                  const Text("Pulsa para ver perfil", style: TextStyle(fontSize: 10, color: Colors.blue, fontStyle: FontStyle.italic)),
+                              ],
+                            ),
+                          ),
+                          if ((canChangeStatus || _isAdmin) && widget.data['uid_usuario'] != null)
+                            const Icon(Icons.chevron_right, color: Colors.orange, size: 20),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -296,7 +363,34 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                   const Text("Descripción:", style: TextStyle(fontWeight: FontWeight.bold)),
                   Text(widget.data['descripcion'] ?? "Sin descripción"),
                   const SizedBox(height: 20),
-                  if (widget.data['latitud'] != null) ElevatedButton.icon(onPressed: _openMap, icon: const Icon(Icons.map, color: Colors.white), label: const Text("VER UBICACIÓN", style: TextStyle(color: Colors.white)), style: ElevatedButton.styleFrom(backgroundColor: Colors.orange)),
+                  if (widget.data['latitud'] != null && widget.data['longitud'] != null)
+                    ElevatedButton.icon(
+                      onPressed: _openMap,
+                      icon: const Icon(Icons.map, color: Colors.white),
+                      label: const Text("ABRIR EN GOOGLE MAPS", style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.location_off, color: Colors.grey),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              "Esta incidencia no tiene ubicación guardada",
+                              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   
                   const Divider(height: 40),
                   const Text("COMENTARIOS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.blueGrey)),

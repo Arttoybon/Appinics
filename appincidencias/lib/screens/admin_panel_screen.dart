@@ -233,7 +233,16 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   var data = doc.data() as Map<String, dynamic>;
                   return ListTile(
                     leading: data['foto_url'] != null 
-                      ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(data['foto_url'], width: 40, height: 40, fit: BoxFit.cover)) 
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            data['foto_url'],
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                            filterQuality: FilterQuality.medium,
+                          ),
+                        )
                       : const CircleAvatar(child: Icon(Icons.report)),
                     title: Text(data['categoria'] ?? "General", style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(data['descripcion'] ?? "", maxLines: 1),
