@@ -75,9 +75,8 @@ class AuthWrapper extends StatelessWidget {
                 final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
                 final String? dni = userData?['dni'];
                 final bool isBlocked = userData?['estaBloqueado'] == true;
-                final bool isDeleted = userData?['fueEliminado'] == true;
 
-                if (isBlocked || isDeleted) {
+                if (isBlocked) {
                   return Scaffold(
                     body: Center(
                       child: Padding(

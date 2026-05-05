@@ -86,10 +86,29 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
     if (confirm) {
       try {
-        await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
-            .collection('usuarios').doc(uid).update({'fueEliminado': true});
+        final batch = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native').batch();
+
+        // 1. Referencia al usuario
+        final userRef = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('usuarios').doc(uid);
+        batch.delete(userRef);
+
+        // 2. Buscar y borrar sus incidencias
+        final incidentsQuery = await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('incidencias').where('uid_usuario', isEqualTo: uid).get();
+
+        for (var doc in incidentsQuery.docs) {
+          batch.delete(doc.reference);
+        }
+
+        // Ejecutar todo en un solo proceso
+        await batch.commit();
+
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Usuario eliminado correctamente"), backgroundColor: Colors.red));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Usuario e incidencias eliminados permanentemente"),
+            backgroundColor: Colors.red
+          ));
         }
       } catch (e) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
@@ -237,8 +256,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             final docs = snapshot.data!.docs.where((d) {
               final data = d.data() as Map<String, dynamic>;
               bool emailMatch = data['email'].toString().toLowerCase().contains(_searchQuery);
-              bool notDeleted = data['fueEliminado'] != true;
-              return emailMatch && notDeleted;
+              return emailMatch;
             }).toList();
             
             return ListView.builder(
