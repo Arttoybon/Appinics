@@ -28,13 +28,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
     try {
+      debugPrint("INICIANDO REGISTRO...");
       final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
       final user = credential.user;
+      debugPrint("USUARIO CREADO: ${user?.uid}");
+
       if (user != null) {
+        debugPrint("GUARDANDO EN FIRESTORE ANTES QUE NADA...");
+        // Primero guardamos los datos para evitar que el AuthWrapper falle por falta de DNI
         await FirebaseFirestore.instanceFor(
           app: Firebase.app(),
           databaseId: 'cantillana-native',
@@ -45,18 +50,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'rol': 'user',
           'fecha_registro': FieldValue.serverTimestamp(),
         });
+        debugPrint("FIRESTORE ACTUALIZADO");
+
+        // ENVIAR CORREO DE VERIFICACIÓN
+        try {
+          debugPrint("ENVIANDO EMAIL DE VERIFICACIÓN...");
+          await user.sendEmailVerification();
+          debugPrint("EMAIL ENVIADO CON ÉXITO");
+        } catch (e) {
+          debugPrint("ERROR AL ENVIAR EMAIL: $e");
+        }
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Cuenta creada con éxito"), backgroundColor: Colors.green)
-        );
-        Navigator.pop(context);
+        setState(() => _isLoading = false);
+        debugPrint("MOSTRANDO DIÁLOGO DE ÉXITO");
+
+        // Usamos Future.delayed para asegurar que el teclado se cierre y el contexto esté listo
+        Future.delayed(Duration.zero, () {
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Text("📧 Verifica tu correo"),
+              content: Text("Te hemos enviado un enlace de confirmación a ${_emailController.text.trim()}. Por favor, revisa tu bandeja de entrada."),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Cierra diálogo
+                    Navigator.of(context).pop(); // Vuelve al login
+                  },
+                  child: const Text("CERRAR Y VOLVER AL LOGIN"),
+                ),
+              ],
+            ),
+          );
+        });
       }
     } on FirebaseAuthException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? "Error al registrarse"), backgroundColor: Colors.redAccent));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      debugPrint("FIREBASE AUTH ERROR: ${e.code} - ${e.message}");
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? "Error al registrarse"), backgroundColor: Colors.redAccent));
+      }
+    } catch (e) {
+      debugPrint("ERROR DESCONOCIDO: $e");
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error inesperado: $e"), backgroundColor: Colors.redAccent));
+      }
     }
   }
 

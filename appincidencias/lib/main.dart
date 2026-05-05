@@ -60,7 +60,77 @@ class AuthWrapper extends StatelessWidget {
 
         final user = snapshot.data;
         if (user != null) {
-          // Si hay usuario, comprobamos si tiene DNI en Firestore
+          // COMPROBAR VERIFICACIÓN DE EMAIL
+          if (!user.emailVerified) {
+            return Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(30),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.mark_email_unread_outlined, size: 80, color: Colors.orange),
+                      const SizedBox(height: 20),
+                      const Text(
+                        "Confirma tu correo",
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        "Hemos enviado un enlace a ${user.email}. Por favor, confírmalo para continuar.",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 30),
+                      ElevatedButton(
+                        onPressed: () async {
+                          await user.reload(); // Recarga estado del usuario
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                        child: const Text("YA HE CONFIRMADO", style: TextStyle(color: Colors.white)),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          await user.sendEmailVerification();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Correo reenviado")));
+                          }
+                        },
+                        child: const Text("Reenviar correo de verificación"),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          await GoogleSignIn().signOut();
+                          await FirebaseAuth.instance.signOut();
+                        },
+                        child: const Text("Cerrar Sesión"),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+
+          // ASEGURAR QUE EL USUARIO EXISTE EN FIRESTORE (Especialmente para Google Login)
+          FirebaseFirestore.instanceFor(
+            app: Firebase.app(),
+            databaseId: 'cantillana-native',
+          ).collection('usuarios').doc(user.uid).get().then((doc) {
+            if (!doc.exists) {
+              FirebaseFirestore.instanceFor(
+                app: Firebase.app(),
+                databaseId: 'cantillana-native',
+              ).collection('usuarios').doc(user.uid).set({
+                'email': user.email,
+                'uid': user.uid,
+                'rol': 'user',
+                'fecha_registro': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
+            }
+          });
+
+          // Si hay usuario y está verificado, comprobamos si tiene DNI en Firestore
           return StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instanceFor(
               app: Firebase.app(),
