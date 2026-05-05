@@ -234,7 +234,9 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   }
 
   Widget _buildUserManagement() {
-    final query = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native').collection('usuarios');
+    final usersQuery = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native').collection('usuarios');
+    final incidentsQuery = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native').collection('incidencias');
+
     return Column(children: [
       Padding(
         padding: const EdgeInsets.all(15),
@@ -250,45 +252,85 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       ),
       Expanded(
         child: StreamBuilder<QuerySnapshot>(
-          stream: query.snapshots(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            final docs = snapshot.data!.docs.where((d) {
-              final data = d.data() as Map<String, dynamic>;
-              bool emailMatch = data['email'].toString().toLowerCase().contains(_searchQuery);
-              return emailMatch;
-            }).toList();
-            
-            return ListView.builder(
-              itemCount: docs.length,
-              itemBuilder: (context, index) {
-                var data = docs[index].data() as Map<String, dynamic>;
-                String email = data['email'] ?? "";
-                String rol = data['rol'] ?? 'user';
-                String? esp = data['especialidad'];
-                bool isBlocked = data['estaBloqueado'] == true;
+          stream: usersQuery.snapshots(),
+          builder: (context, userSnapshot) {
+            if (!userSnapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                  color: isBlocked ? Colors.red[50] : null,
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundImage: NetworkImage(_getAvatarUrl(email)),
-                      child: isBlocked ? const Icon(Icons.block, color: Colors.red, size: 30) : null,
-                    ),
-                    title: Row(
-                      children: [
-                        Text(email, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        if (isBlocked) ...[
-                          const SizedBox(width: 8),
-                          const Text("BLOQUEADO", style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ]
-                      ],
-                    ),
-                    subtitle: Text("Rol: ${rol.toUpperCase()} ${esp != null ? '($esp)' : ''}"),
-                    trailing: const Icon(Icons.edit, size: 20),
-                    onTap: () => _showRoleDialog(docs[index].id, email, rol, esp, isBlocked),
-                  ),
+            return StreamBuilder<QuerySnapshot>(
+              stream: incidentsQuery.snapshots(),
+              builder: (context, incidentSnapshot) {
+                // Obtenemos todos los emails de los usuarios que han reportado incidencias
+                Set<String> reporters = {};
+                if (incidentSnapshot.hasData) {
+                  for (var doc in incidentSnapshot.data!.docs) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    if (data['email_usuario'] != null) {
+                      reporters.add(data['email_usuario'].toString().toLowerCase());
+                    }
+                  }
+                }
+
+                // Lista de usuarios registrados en la tabla 'usuarios'
+                final registeredUsers = userSnapshot.data!.docs.map((d) => d.data() as Map<String, dynamic>).toList();
+                final registeredEmails = registeredUsers.map((u) => u['email'].toString().toLowerCase()).toSet();
+
+                // Identificamos emails que reportaron pero no están registrados como usuarios
+                List<String> missingEmails = reporters.where((email) => !registeredEmails.contains(email)).toList();
+
+                final docs = userSnapshot.data!.docs.where((d) {
+                  final data = d.data() as Map<String, dynamic>;
+                  bool emailMatch = data['email'].toString().toLowerCase().contains(_searchQuery);
+                  return emailMatch;
+                }).toList();
+
+                return ListView(
+                  children: [
+                    if (missingEmails.isNotEmpty && _searchQuery.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(color: Colors.amber[100], borderRadius: BorderRadius.circular(10)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("⚠️ ATENCIÓN: Usuarios no registrados", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                            const Text("Estos emails han enviado incidencias pero aún no tienen perfil oficial (deben entrar a la app para activarse):", style: TextStyle(fontSize: 12)),
+                            const SizedBox(height: 5),
+                            ...missingEmails.map((e) => Text("• $e", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                          ],
+                        ),
+                      ),
+                    ...docs.map((doc) {
+                      var data = doc.data() as Map<String, dynamic>;
+                      String email = data['email'] ?? "";
+                      String rol = data['rol'] ?? 'user';
+                      String? esp = data['especialidad'];
+                      bool isBlocked = data['estaBloqueado'] == true;
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                        color: isBlocked ? Colors.red[50] : null,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: NetworkImage(_getAvatarUrl(email)),
+                            child: isBlocked ? const Icon(Icons.block, color: Colors.red, size: 30) : null,
+                          ),
+                          title: Row(
+                            children: [
+                              Text(email, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              if (isBlocked) ...[
+                                const SizedBox(width: 8),
+                                const Text("BLOQUEADO", style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold)),
+                              ]
+                            ],
+                          ),
+                          subtitle: Text("Rol: ${rol.toUpperCase()} ${esp != null ? '($esp)' : ''}"),
+                          trailing: const Icon(Icons.edit, size: 20),
+                          onTap: () => _showRoleDialog(doc.id, email, rol, esp, isBlocked),
+                        ),
+                      );
+                    }).toList(),
+                  ],
                 );
               },
             );
