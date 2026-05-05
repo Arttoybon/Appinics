@@ -63,7 +63,11 @@ class NotificationsScreen extends StatelessWidget {
                 elevation: leida ? 1 : 3,
                 child: ListTile(
                   leading: Icon(
-                    data['tipo'] == 'estado' ? Icons.info_outline : Icons.comment_outlined,
+                    data['tipo'] == 'estado'
+                        ? Icons.info_outline
+                        : data['tipo'] == 'comentario'
+                            ? Icons.comment_outlined
+                            : Icons.assignment_ind_outlined,
                     color: Colors.orange,
                   ),
                   title: Text(

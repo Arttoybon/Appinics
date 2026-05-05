@@ -146,6 +146,34 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
             'asignado_a_uid': user.uid,
             'tecnico_email': user.email,
           });
+
+      // NOTIFICACIÓN PARA EL DUEÑO DE LA INCIDENCIA
+      final ownerUid = widget.data['uid_usuario'];
+      if (ownerUid != null) {
+        await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('notificaciones').add({
+          'uid_usuario': ownerUid,
+          'titulo': 'Técnico asignado',
+          'mensaje': 'Un técnico (${user.email}) se ha asignado a tu incidencia de ${widget.data['categoria']}',
+          'incidencia_id': widget.docId,
+          'fecha': FieldValue.serverTimestamp(),
+          'leida': false,
+          'tipo': 'asignacion'
+        });
+      }
+
+      // NOTIFICACIÓN PARA EL TÉCNICO (Mismo usuario en este caso)
+      await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+          .collection('notificaciones').add({
+        'uid_usuario': user.uid,
+        'titulo': 'Incidencia asignada',
+        'mensaje': 'Te has asignado la incidencia de ${widget.data['categoria']}',
+        'incidencia_id': widget.docId,
+        'fecha': FieldValue.serverTimestamp(),
+        'leida': false,
+        'tipo': 'asignacion'
+      });
+
       setState(() => _assignedTo = user.uid);
     } catch (e) {
       debugPrint("Error self-assigning: $e");
@@ -161,6 +189,34 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
             'asignado_a_uid': techUid,
             'tecnico_email': tech['email'],
           });
+
+      // NOTIFICACIÓN PARA EL TÉCNICO ASIGNADO
+      await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+          .collection('notificaciones').add({
+        'uid_usuario': techUid,
+        'titulo': 'Nueva incidencia asignada',
+        'mensaje': 'Se te ha asignado la incidencia de ${widget.data['categoria']}',
+        'incidencia_id': widget.docId,
+        'fecha': FieldValue.serverTimestamp(),
+        'leida': false,
+        'tipo': 'asignacion'
+      });
+
+      // NOTIFICACIÓN PARA EL DUEÑO DE LA INCIDENCIA
+      final ownerUid = widget.data['uid_usuario'];
+      if (ownerUid != null) {
+        await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('notificaciones').add({
+          'uid_usuario': ownerUid,
+          'titulo': 'Técnico asignado',
+          'mensaje': 'El técnico ${tech['email']} ha sido asignado a tu incidencia de ${widget.data['categoria']}',
+          'incidencia_id': widget.docId,
+          'fecha': FieldValue.serverTimestamp(),
+          'leida': false,
+          'tipo': 'asignacion'
+        });
+      }
+
       setState(() => _assignedTo = techUid);
     } catch (e) {
       debugPrint("Error assigning: $e");

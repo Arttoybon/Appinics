@@ -60,8 +60,14 @@ class AuthWrapper extends StatelessWidget {
 
         final user = snapshot.data;
         if (user != null) {
-          // COMPROBAR VERIFICACIÓN DE EMAIL
-          if (!user.emailVerified) {
+          // COMPROBAR VERIFICACIÓN DE EMAIL (Excepto cuentas de prueba)
+          final List<String> bypassEmails = [
+            'ciudadano1@gmail.com',
+            'tecnico@gmail.com',
+            'admin@gmail.com'
+          ];
+
+          if (!user.emailVerified && !bypassEmails.contains(user.email)) {
             return Scaffold(
               body: Center(
                 child: Padding(

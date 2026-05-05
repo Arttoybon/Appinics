@@ -105,30 +105,38 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final user = credential.user;
       if (user != null && !user.emailVerified) {
-        // El correo no está verificado
-        await FirebaseAuth.instance.signOut();
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text("⚠️ Correo no verificado"),
-              content: const Text("Debes confirmar tu cuenta pulsando en el enlace que te enviamos por correo."),
-              actions: [
-                TextButton(
-                  onPressed: () async {
-                    await user.sendEmailVerification();
-                    if (context.mounted) Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Correo de verificación reenviado")));
-                  },
-                  child: const Text("REENVIAR CORREO"),
-                ),
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("CERRAR")),
-              ],
-            ),
-          );
+        // El correo no está verificado (Excepto cuentas de prueba)
+        final List<String> bypassEmails = [
+          'ciudadano1@gmail.com',
+          'tecnico@gmail.com',
+          'admin@gmail.com'
+        ];
+
+        if (!bypassEmails.contains(user.email)) {
+          await FirebaseAuth.instance.signOut();
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text("⚠️ Correo no verificado"),
+                content: const Text("Debes confirmar tu cuenta pulsando en el enlace que te enviamos por correo."),
+                actions: [
+                  TextButton(
+                    onPressed: () async {
+                      await user.sendEmailVerification();
+                      if (context.mounted) Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Correo de verificación reenviado")));
+                    },
+                    child: const Text("REENVIAR CORREO"),
+                  ),
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("CERRAR")),
+                ],
+              ),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
         }
-        setState(() => _isLoading = false);
-        return;
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
