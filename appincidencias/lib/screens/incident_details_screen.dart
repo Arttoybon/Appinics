@@ -20,12 +20,15 @@ class IncidentDetailsScreen extends StatefulWidget {
 class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
   bool _isAdmin = false;
   bool _isTechnician = false;
-  bool _isSuperAdmin = false;
   String? _currentStatus;
   String? _assignedTo;
   String? _techSpecialty;
   List<Map<String, dynamic>> _availableTechnicians = [];
-  
+
+  String? _currentDescription;
+  double? _currentLat;
+  double? _currentLng;
+
   final TextEditingController _commentController = TextEditingController();
 
   @override
@@ -33,6 +36,9 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     super.initState();
     _currentStatus = widget.data['estado'] ?? 'Pendiente';
     _assignedTo = widget.data['asignado_a_uid'];
+    _currentDescription = widget.data['descripcion'];
+    _currentLat = widget.data['latitud'];
+    _currentLng = widget.data['longitud'];
     _checkUserPrivileges();
   }
 
@@ -44,10 +50,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
   Future<void> _checkUserPrivileges() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      if (user.email == 'rosadelalbaxx@gmail.com') {
-        if (mounted) setState(() => _isSuperAdmin = true);
-      }
-      
       try {
         final doc = await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
             .collection('usuarios').doc(user.uid).get();
@@ -58,7 +60,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
           
           if (mounted) {
             setState(() {
-              if (rol == 'admin' || _isSuperAdmin) {
+              if (rol == 'admin' || user.email == 'rosadelalbaxx@gmail.com') {
                 _isAdmin = true;
                 _fetchTechnicians(); 
               } else if (rol == 'tecnico') {
@@ -67,11 +69,14 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
               }
             });
           }
-        } else if (_isSuperAdmin) {
+        } else if (user.email == 'rosadelalbaxx@gmail.com') {
           if (mounted) setState(() => _isAdmin = true);
         }
       } catch (e) {
         debugPrint("Error privileges: $e");
+        if (user.email == 'rosadelalbaxx@gmail.com') {
+          if (mounted) setState(() => _isAdmin = true);
+        }
       }
     }
   }
@@ -156,6 +161,85 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     }
   }
 
+  Future<void> _editDescription() async {
+    final TextEditingController descEditController = TextEditingController(text: _currentDescription);
+    bool confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Editar Descripción"),
+        content: TextField(
+          controller: descEditController,
+          maxLines: 5,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCELAR")),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("GUARDAR")),
+        ],
+      ),
+    ) ?? false;
+
+    if (confirm && descEditController.text.trim().isNotEmpty) {
+      try {
+        await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('incidencias').doc(widget.docId).update({'descripcion': descEditController.text.trim()});
+        setState(() => _currentDescription = descEditController.text.trim());
+      } catch (e) {
+        debugPrint("Error updating description: $e");
+      }
+    }
+  }
+
+  Future<void> _editLocation() async {
+    final TextEditingController latController = TextEditingController(text: _currentLat?.toString() ?? "");
+    final TextEditingController lngController = TextEditingController(text: _currentLng?.toString() ?? "");
+
+    bool confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Editar Ubicación"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: latController,
+              decoration: const InputDecoration(labelText: "Latitud"),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            TextField(
+              controller: lngController,
+              decoration: const InputDecoration(labelText: "Longitud"),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCELAR")),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("GUARDAR")),
+        ],
+      ),
+    ) ?? false;
+
+    if (confirm) {
+      double? newLat = double.tryParse(latController.text.trim());
+      double? newLng = double.tryParse(lngController.text.trim());
+
+      try {
+        await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('incidencias').doc(widget.docId).update({
+              'latitud': newLat,
+              'longitud': newLng,
+            });
+        setState(() {
+          _currentLat = newLat;
+          _currentLng = newLng;
+        });
+      } catch (e) {
+        debugPrint("Error updating location: $e");
+      }
+    }
+  }
+
   Future<void> _deleteIncident() async {
     bool confirm = await showDialog(
       context: context,
@@ -174,10 +258,8 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
   }
 
   Future<void> _openMap() async {
-    final double? lat = widget.data['latitud'];
-    final double? lng = widget.data['longitud'];
-    if (lat != null && lng != null) {
-      final Uri url = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
+    if (_currentLat != null && _currentLng != null) {
+      final Uri url = Uri.parse("https://www.google.com/maps/search/?api=1&query=$_currentLat,$_currentLng");
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
@@ -241,7 +323,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
         title: const Text("Detalles", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
         backgroundColor: Colors.orange, 
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [if (_isSuperAdmin) IconButton(icon: const Icon(Icons.delete_forever), onPressed: _deleteIncident)],
+        actions: [if (_isAdmin) IconButton(icon: const Icon(Icons.delete_forever), onPressed: _deleteIncident)],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -360,15 +442,25 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                   ),
                   Text("Fecha: $fechaStr", style: const TextStyle(color: Colors.grey, fontSize: 14)),
                   const SizedBox(height: 15),
-                  const Text("Descripción:", style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(widget.data['descripcion'] ?? "Sin descripción"),
+                  Row(
+                    children: [
+                      const Text("Descripción:", style: TextStyle(fontWeight: FontWeight.bold)),
+                      if (_isAdmin) IconButton(icon: const Icon(Icons.edit, size: 16, color: Colors.blue), onPressed: _editDescription),
+                    ],
+                  ),
+                  Text(_currentDescription ?? "Sin descripción"),
                   const SizedBox(height: 20),
-                  if (widget.data['latitud'] != null && widget.data['longitud'] != null)
-                    ElevatedButton.icon(
-                      onPressed: _openMap,
-                      icon: const Icon(Icons.map, color: Colors.white),
-                      label: const Text("ABRIR EN GOOGLE MAPS", style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                  if (_currentLat != null && _currentLng != null)
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _openMap,
+                          icon: const Icon(Icons.map, color: Colors.white),
+                          label: const Text("ABRIR EN GOOGLE MAPS", style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                        ),
+                        if (_isAdmin) IconButton(icon: const Icon(Icons.edit_location_alt, color: Colors.blue), onPressed: _editLocation),
+                      ],
                     )
                   else
                     Container(
@@ -378,16 +470,17 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: Colors.grey[300]!),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.location_off, color: Colors.grey),
-                          SizedBox(width: 10),
-                          Expanded(
+                          const Icon(Icons.location_off, color: Colors.grey),
+                          const SizedBox(width: 10),
+                          const Expanded(
                             child: Text(
                               "Esta incidencia no tiene ubicación guardada",
                               style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
                             ),
                           ),
+                          if (_isAdmin) IconButton(icon: const Icon(Icons.add_location_alt, color: Colors.blue), onPressed: _editLocation),
                         ],
                       ),
                     ),
