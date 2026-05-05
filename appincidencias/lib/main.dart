@@ -78,11 +78,6 @@ class AuthWrapper extends StatelessWidget {
                 final bool isDeleted = userData?['fueEliminado'] == true;
 
                 if (isBlocked || isDeleted) {
-                  // Pequeño delay para evitar conflictos de navegación
-                  Future.delayed(Duration.zero, () async {
-                    await GoogleSignIn().signOut();
-                    await FirebaseAuth.instance.signOut();
-                  });
                   return Scaffold(
                     body: Center(
                       child: Padding(
@@ -108,7 +103,8 @@ class AuthWrapper extends StatelessWidget {
                                 await GoogleSignIn().signOut();
                                 await FirebaseAuth.instance.signOut();
                               },
-                              child: const Text("Volver al Login"),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                              child: const Text("Volver al Login", style: TextStyle(color: Colors.white)),
                             )
                           ],
                         ),
