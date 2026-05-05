@@ -354,7 +354,8 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                     const Text("ASIGNAR A TÉCNICO", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 12)),
                     DropdownButton<String>(
                       hint: Text(_availableTechnicians.isEmpty ? "Sin técnicos" : "Elegir Técnico"),
-                      value: _assignedTo, isExpanded: true,
+                      value: (_availableTechnicians.any((t) => t['uid'] == _assignedTo)) ? _assignedTo : null,
+                      isExpanded: true,
                       items: _availableTechnicians.map((t) => DropdownMenuItem<String>(
                         value: t['uid'].toString(), 
                         child: Text(t['email'].toString())

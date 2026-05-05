@@ -1,7 +1,8 @@
 import 'package:appincidencias/screens/login_screen.dart'; 
 import 'package:appincidencias/screens/my_incidents_screen.dart';
 import 'package:appincidencias/screens/admin_panel_screen.dart';
-import 'package:appincidencias/screens/technician_panel_screen.dart'; // Añadido
+import 'package:appincidencias/screens/technician_panel_screen.dart';
+import 'package:appincidencias/screens/user_profile_screen.dart'; // Añadido
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -180,6 +181,25 @@ class _ReportScreenState extends State<ReportScreen> {
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyIncidentsScreen())),
         ),
         actions: [
+          // BOTÓN DE PERFIL
+          IconButton(
+            icon: const Icon(Icons.account_circle, color: Colors.white),
+            tooltip: 'Mi Perfil',
+            onPressed: () {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UserProfileScreen(
+                      userId: user.uid,
+                      userEmail: user.email ?? "",
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
           // BOTÓN DE TÉCNICO (Engranajes)
           if (_isTechnician && _especialidad != null)
             IconButton(
