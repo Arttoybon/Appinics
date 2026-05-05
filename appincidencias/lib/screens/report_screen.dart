@@ -2,7 +2,8 @@ import 'package:appincidencias/screens/login_screen.dart';
 import 'package:appincidencias/screens/my_incidents_screen.dart';
 import 'package:appincidencias/screens/admin_panel_screen.dart';
 import 'package:appincidencias/screens/technician_panel_screen.dart';
-import 'package:appincidencias/screens/user_profile_screen.dart'; // Añadido
+import 'package:appincidencias/screens/user_profile_screen.dart';
+import 'package:appincidencias/screens/notifications_screen.dart'; // Añadido
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -181,6 +182,42 @@ class _ReportScreenState extends State<ReportScreen> {
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyIncidentsScreen())),
         ),
         actions: [
+          // BOTÓN DE NOTIFICACIONES (Campana con Badge)
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+                .collection('notificaciones')
+                .where('uid_usuario', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                .where('leida', isEqualTo: false)
+                .snapshots(),
+            builder: (context, snapshot) {
+              int unreadCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications, color: Colors.white),
+                    tooltip: 'Notificaciones',
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          unreadCount > 9 ? '9+' : '$unreadCount',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           // BOTÓN DE PERFIL
           IconButton(
             icon: const Icon(Icons.account_circle, color: Colors.white),

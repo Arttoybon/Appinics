@@ -114,6 +114,22 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
         'autor_uid': user.uid,
         'fecha': FieldValue.serverTimestamp(),
       });
+
+      // NOTIFICACIÓN PARA EL DUEÑO DE LA INCIDENCIA
+      final ownerUid = widget.data['uid_usuario'];
+      if (ownerUid != null && ownerUid != user.uid) {
+        await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('notificaciones').add({
+          'uid_usuario': ownerUid,
+          'titulo': 'Nuevo comentario',
+          'mensaje': '${user.email} ha comentado en tu incidencia de ${widget.data['categoria']}',
+          'incidencia_id': widget.docId,
+          'fecha': FieldValue.serverTimestamp(),
+          'leida': false,
+          'tipo': 'comentario'
+        });
+      }
+
       _commentController.clear();
       if (mounted) FocusScope.of(context).unfocus();
     } catch (e) {
@@ -156,6 +172,22 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     try {
       await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
           .collection('incidencias').doc(widget.docId).update({'estado': newStatus});
+
+      // NOTIFICACIÓN PARA EL DUEÑO DE LA INCIDENCIA
+      final ownerUid = widget.data['uid_usuario'];
+      if (ownerUid != null) {
+        await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('notificaciones').add({
+          'uid_usuario': ownerUid,
+          'titulo': 'Estado actualizado',
+          'mensaje': 'Tu incidencia de ${widget.data['categoria']} ha pasado a: $newStatus',
+          'incidencia_id': widget.docId,
+          'fecha': FieldValue.serverTimestamp(),
+          'leida': false,
+          'tipo': 'estado'
+        });
+      }
+
       setState(() => _currentStatus = newStatus);
     } catch (e) {
       debugPrint("Error status: $e");
