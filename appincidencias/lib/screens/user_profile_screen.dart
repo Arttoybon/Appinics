@@ -60,15 +60,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    // VALIDACIÓN: No permitir campos vacíos
+    // VALIDACIÓN: No permitir campos vacíos y validar teléfono numérico
+    final String phone = _phoneController.text.trim();
     if (_nameController.text.trim().isEmpty ||
         _dniController.text.trim().isEmpty ||
-        _phoneController.text.trim().isEmpty) {
+        phone.isEmpty) {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("⚠️ Por favor, rellena todos los campos (Nombre, DNI y Teléfono)"),
           backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Comprobar que el teléfono sea numérico
+    if (RegExp(r'^[0-9]+$').hasMatch(phone) == false) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⚠️ El teléfono debe contener solo números"),
+          backgroundColor: Colors.redAccent,
         ),
       );
       return;
@@ -264,6 +276,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return TextField(
       controller: controller,
       enabled: enabled,
+      keyboardType: label == "Teléfono" ? TextInputType.phone : TextInputType.text,
       style: const TextStyle(fontWeight: FontWeight.bold),
       decoration: InputDecoration(
         labelText: label,
