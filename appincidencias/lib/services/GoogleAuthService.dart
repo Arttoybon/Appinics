@@ -25,6 +25,7 @@ class GoogleAuthService {
   // 4. Método para Cerrar Sesión
   Future<void> signOut() async {
     try {
+      await _googleSignIn.disconnect(); // Desconecta la cuenta y borra tokens de Google
       await _googleSignIn.signOut();
     } catch (error) {
       // Manejar el error adecuadamente

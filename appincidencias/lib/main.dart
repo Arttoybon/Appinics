@@ -106,7 +106,11 @@ class AuthWrapper extends StatelessWidget {
                       ),
                       TextButton(
                         onPressed: () async {
-                          await GoogleSignIn().signOut();
+                          final googleSignIn = GoogleSignIn();
+                          if (await googleSignIn.isSignedIn()) {
+                            await googleSignIn.disconnect();
+                          }
+                          await googleSignIn.signOut();
                           await FirebaseAuth.instance.signOut();
                         },
                         child: const Text("Cerrar Sesión"),
@@ -175,7 +179,11 @@ class AuthWrapper extends StatelessWidget {
                             const SizedBox(height: 30),
                             ElevatedButton(
                               onPressed: () async {
-                                await GoogleSignIn().signOut();
+                                final googleSignIn = GoogleSignIn();
+                                if (await googleSignIn.isSignedIn()) {
+                                  await googleSignIn.disconnect();
+                                }
+                                await googleSignIn.signOut();
                                 await FirebaseAuth.instance.signOut();
                               },
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),

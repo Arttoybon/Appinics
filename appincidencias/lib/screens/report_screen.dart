@@ -3,7 +3,7 @@ import 'package:appincidencias/screens/my_incidents_screen.dart';
 import 'package:appincidencias/screens/admin_panel_screen.dart';
 import 'package:appincidencias/screens/technician_panel_screen.dart';
 import 'package:appincidencias/screens/user_profile_screen.dart';
-import 'package:appincidencias/screens/notifications_screen.dart'; // Añadido
+import 'package:appincidencias/screens/notifications_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -13,7 +13,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:appincidencias/services/api_service.dart';
-import 'dart:io';
+import 'dart:io' show File;
+import 'package:appincidencias/utils/web_reload/web_reload.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -28,8 +29,8 @@ class _ReportScreenState extends State<ReportScreen> {
   XFile? _imagenSeleccionada;
   bool _isLoading = false;
   bool _isAdmin = false;
-  bool _isTechnician = false; // Nueva variable
-  String? _especialidad; // Especialidad del técnico
+  bool _isTechnician = false;
+  String? _especialidad;
   Position? _currentPosition;
   bool _isLocationLoading = false;
   String? _locationError;
@@ -48,8 +49,6 @@ class _ReportScreenState extends State<ReportScreen> {
   @override
   void initState() {
     super.initState();
-    // En web, solicitar ubicación en el arranque suele ser bloqueado por el navegador.
-    // Se recomienda hacerlo tras una interacción del usuario.
     if (!kIsWeb) {
       _determinePosition();
     }
@@ -94,20 +93,16 @@ class _ReportScreenState extends State<ReportScreen> {
     });
 
     try {
-      // 1. Verificar si el servicio está habilitado
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        // En algunos navegadores, esto puede fallar. Intentamos seguir si es Web.
         if (!kIsWeb) throw 'El servicio de ubicación está desactivado.';
       }
 
-      // 2. Verificar y solicitar permisos explícitamente
       LocationPermission permission = await Geolocator.checkPermission();
 
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          // Si el usuario deniega, opcionalmente podemos abrir ajustes (solo móvil)
           if (!kIsWeb) await Geolocator.openAppSettings();
           throw 'Permiso de ubicación denegado. Por favor, acéptalo para reportar.';
         }
@@ -117,7 +112,6 @@ class _ReportScreenState extends State<ReportScreen> {
         throw 'Permiso bloqueado permanentemente. Actívalo en los ajustes del navegador (icono del candado).';
       }
 
-      // 3. Intentar obtener la posición actual con fallback a última conocida
       Position? position;
       try {
         position = await Geolocator.getCurrentPosition(
@@ -166,7 +160,6 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Future<void> _enviarReporte() async {
-    // Verificamos que todos los campos estén completos: Categoría, Descripción, Imagen y Ubicación
     if (_categoriaSeleccionada == null ||
         _descController.text.trim().isEmpty ||
         _imagenSeleccionada == null ||
@@ -209,7 +202,6 @@ class _ReportScreenState extends State<ReportScreen> {
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyIncidentsScreen())),
         ),
         actions: [
-          // BOTÓN DE NOTIFICACIONES (Campana con Badge)
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
                 .collection('notificaciones')
@@ -245,7 +237,6 @@ class _ReportScreenState extends State<ReportScreen> {
               );
             },
           ),
-          // BOTÓN DE PERFIL
           IconButton(
             icon: const Icon(Icons.account_circle, color: Colors.white),
             tooltip: 'Mi Perfil',
@@ -264,14 +255,12 @@ class _ReportScreenState extends State<ReportScreen> {
               }
             },
           ),
-          // BOTÓN DE TÉCNICO (Engranajes)
           if (_isTechnician && _especialidad != null)
             IconButton(
               icon: const Icon(Icons.engineering, color: Colors.white),
               tooltip: 'Panel de Técnico',
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TechnicianPanelScreen(especialidad: _especialidad!))),
             ),
-          // BOTÓN DE ADMIN (Escudo)
           if (_isAdmin)
             IconButton(
               icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
@@ -280,10 +269,20 @@ class _ReportScreenState extends State<ReportScreen> {
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
-              await GoogleSignIn().signOut();
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
+              try {
+                final googleSignIn = GoogleSignIn();
+                if (await googleSignIn.isSignedIn()) {
+                  await googleSignIn.disconnect();
+                  await googleSignIn.signOut();
+                }
+
+                await FirebaseAuth.instance.signOut();
+
+                if (kIsWeb) {
+                  reloadApp();
+                }
+              } catch (e) {
+                debugPrint("Error al cerrar sesión: $e");
               }
             },
           ),
