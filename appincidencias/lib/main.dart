@@ -39,6 +39,26 @@ class CantillanaReportApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
         useMaterial3: true,
       ),
+      builder: (context, child) {
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  if (MediaQuery.of(context).size.width > 600)
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                ],
+              ),
+              child: child,
+            ),
+          ),
+        );
+      },
       home: const AuthWrapper(),
     );
   }
