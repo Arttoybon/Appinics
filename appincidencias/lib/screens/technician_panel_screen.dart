@@ -18,12 +18,11 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Consulta filtrada SOLO por la especialidad del técnico
+    // Consulta para obtener incidencias (el filtrado por especialidad se hará en el StreamBuilder para permitir "Otro")
     final query = FirebaseFirestore.instanceFor(
       app: Firebase.app(), 
       databaseId: 'cantillana-native'
     ).collection('incidencias')
-     .where('categoria', isEqualTo: widget.especialidad)
      .orderBy('fecha', descending: true);
 
     return Scaffold(
@@ -70,13 +69,20 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
                   return Center(child: Text("No hay incidencias de ${widget.especialidad} pendientes"));
                 }
 
-                // Filtrado manual por ID o Descripción
+                // Filtrado por especialidad + Categoría "Otro" + Búsqueda
                 final docs = snapshot.data!.docs.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   final docId = doc.id.toLowerCase();
                   final descripcion = (data['descripcion'] ?? "").toString().toLowerCase();
-                  
-                  return docId.contains(_searchQuery) || descripcion.contains(_searchQuery);
+                  final categoria = (data['categoria'] ?? "").toString().trim();
+
+                  // El técnico ve: Su especialidad O las de categoría "Otro"
+                  bool esDeSuInteres = categoria == widget.especialidad || categoria == "Otro";
+
+                  // Aplicar también el filtro de búsqueda por texto
+                  bool coincideBusqueda = docId.contains(_searchQuery) || descripcion.contains(_searchQuery);
+
+                  return esDeSuInteres && coincideBusqueda;
                 }).toList();
 
                 if (docs.isEmpty) {

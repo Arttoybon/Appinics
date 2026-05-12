@@ -91,8 +91,14 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
       final List<Map<String, dynamic>> techList = [];
       for (var doc in query.docs) {
         final data = doc.data();
-        if (data['rol'] == 'tecnico' && data['especialidad']?.toString().trim().toLowerCase() == categoriaIncidencia) {
-          techList.add({'uid': doc.id, 'email': data['email'] ?? "Sin email"});
+        if (data['rol'] == 'tecnico') {
+          String? especialidad = data['especialidad']?.toString().trim().toLowerCase();
+
+          // Si la categoría es "Otro", cualquier técnico sirve.
+          // Si no, debe coincidir la especialidad.
+          if (categoriaIncidencia == "otro" || especialidad == categoriaIncidencia) {
+            techList.add({'uid': doc.id, 'email': data['email'] ?? "Sin email"});
+          }
         }
       }
       if (mounted) setState(() => _availableTechnicians = techList);
@@ -350,7 +356,8 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     String fechaStr = fecha != null ? DateFormat('dd/MM/yyyy HH:mm').format(fecha) : "S/F";
     
     bool canChangeStatus = _isAdmin || _isTechnician;
-    bool canSelfAssign = _isTechnician && _assignedTo == null && _techSpecialty == (widget.data['categoria'] ?? "").toString().trim().toLowerCase();
+    bool isOtro = (widget.data['categoria'] ?? "").toString().trim().toLowerCase() == "otro";
+    bool canSelfAssign = _isTechnician && _assignedTo == null && (isOtro || _techSpecialty == (widget.data['categoria'] ?? "").toString().trim().toLowerCase());
     
     bool canComment = _isAdmin || (_isTechnician && _assignedTo == user?.uid);
 

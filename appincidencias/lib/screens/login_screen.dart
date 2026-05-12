@@ -202,7 +202,15 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             children: [
               const SizedBox(height: 80),
-              const Icon(Icons.report_problem_rounded, size: 80, color: Colors.orange),
+              Image.asset(
+                'assets/images/logo.png',
+                height: 120,
+                errorBuilder: (context, error, stackTrace) {
+                  debugPrint("Error cargando logo: $error");
+                  return const Icon(Icons.report_problem_rounded, size: 80, color: Colors.orange);
+                },
+              ),
+              const SizedBox(height: 20),
               const Text("Cantillana Report", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
               const SizedBox(height: 40),
               TextField(

@@ -42,12 +42,17 @@ class _ReportScreenState extends State<ReportScreen> {
     {'nombre': 'Limpieza', 'icon': Icons.cleaning_services},
     {'nombre': 'Mobiliario', 'icon': Icons.chair},
     {'nombre': 'Vías', 'icon': Icons.add_road},
+    {'nombre': 'Otro', 'icon': Icons.more_horiz},
   ];
 
   @override
   void initState() {
     super.initState();
-    _determinePosition();
+    // En web, solicitar ubicación en el arranque suele ser bloqueado por el navegador.
+    // Se recomienda hacerlo tras una interacción del usuario.
+    if (!kIsWeb) {
+      _determinePosition();
+    }
     _checkUserRole();
   }
 
@@ -89,27 +94,43 @@ class _ReportScreenState extends State<ReportScreen> {
     });
 
     try {
+      // 1. Verificar si el servicio está habilitado
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        throw 'Servicio de ubicación desactivado';
+        // En algunos navegadores, esto puede fallar. Intentamos seguir si es Web.
+        if (!kIsWeb) throw 'El servicio de ubicación está desactivado.';
       }
 
+      // 2. Verificar y solicitar permisos explícitamente
       LocationPermission permission = await Geolocator.checkPermission();
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          throw 'Permiso de ubicación denegado';
+          // Si el usuario deniega, opcionalmente podemos abrir ajustes (solo móvil)
+          if (!kIsWeb) await Geolocator.openAppSettings();
+          throw 'Permiso de ubicación denegado. Por favor, acéptalo para reportar.';
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        throw 'Permiso bloqueado. Actívalo en el candado de la barra de direcciones.';
+        throw 'Permiso bloqueado permanentemente. Actívalo en los ajustes del navegador (icono del candado).';
       }
 
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
-      );
+      // 3. Intentar obtener la posición actual con fallback a última conocida
+      Position? position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 8),
+        );
+      } catch (e) {
+        debugPrint("Error al obtener posición actual, intentando última conocida: $e");
+        position = await Geolocator.getLastKnownPosition();
+        if (position == null) {
+          throw 'No se pudo obtener la ubicación. Asegúrate de tener el GPS activo y cobertura.';
+        }
+      }
 
       if (mounted) {
         setState(() {
@@ -118,12 +139,18 @@ class _ReportScreenState extends State<ReportScreen> {
         });
       }
     } catch (e) {
-      debugPrint("Error ubicación: $e");
+      debugPrint("Error ubicación detallado: $e");
+      String errorMsg = e.toString().replaceAll("Exception: ", "");
+
       if (mounted) {
         setState(() {
-          _locationError = e.toString().replaceAll("Exception: ", "");
+          _locationError = errorMsg;
           _isLocationLoading = false;
         });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("📍 $errorMsg"), backgroundColor: Colors.redAccent),
+        );
       }
     }
   }
@@ -314,10 +341,13 @@ class _ReportScreenState extends State<ReportScreen> {
             ),
             const SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(10),
+                color: _currentPosition != null ? Colors.green.withOpacity(0.1) : Colors.grey[50],
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.grey[300]!),
+                ),
               ),
               child: Column(
                 children: [
@@ -325,32 +355,46 @@ class _ReportScreenState extends State<ReportScreen> {
                     children: [
                       Icon(
                         _currentPosition != null ? Icons.location_on : Icons.location_off,
-                        color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.grey),
+                        color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.orange),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          _currentPosition != null
-                            ? "Ubicación lista"
-                            : (_isLocationLoading ? "Obteniendo GPS..." : (_locationError ?? "Ubicación no disponible")),
-                          style: TextStyle(
-                            color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.black87),
-                            fontWeight: _currentPosition != null ? FontWeight.bold : FontWeight.normal,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _currentPosition != null
+                                ? "Ubicación detectada"
+                                : (_isLocationLoading ? "Obteniendo GPS..." : (_locationError ?? "Ubicación requerida")),
+                              style: TextStyle(
+                                color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.black87),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (_currentPosition == null && !_isLocationLoading)
+                              const Text(
+                                "Pulsa el botón para activar el GPS",
+                                style: TextStyle(fontSize: 11, color: Colors.grey),
+                              ),
+                          ],
                         ),
                       ),
-                      if (!_isLocationLoading && _currentPosition == null)
-                        TextButton.icon(
+                      if (!_isLocationLoading)
+                        ElevatedButton(
                           onPressed: _determinePosition,
-                          icon: const Icon(Icons.refresh, size: 18),
-                          label: const Text("Reintentar"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _currentPosition != null ? Colors.green : Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          child: Text(_currentPosition != null ? "ACTUALIZAR" : "ACTIVAR GPS"),
                         ),
                     ],
                   ),
                   if (_isLocationLoading)
                     const Padding(
                       padding: EdgeInsets.only(top: 8.0),
-                      child: LinearProgressIndicator(minHeight: 2),
+                      child: LinearProgressIndicator(minHeight: 2, color: Colors.orange),
                     ),
                 ],
               ),
