@@ -66,7 +66,7 @@ class _ReportScreenState extends State<ReportScreen> {
           final data = doc.data();
           String? rol = data?['rol']?.toString().trim().toLowerCase();
           
-          if (rol == 'admin' || user.email == 'rosadelalbaxx@gmail.com') {
+          if (rol == 'admin') {
             if (mounted) setState(() => _isAdmin = true);
           } else if (rol == 'tecnico') {
             if (mounted) setState(() {
@@ -74,13 +74,9 @@ class _ReportScreenState extends State<ReportScreen> {
               _especialidad = data?['especialidad'];
             });
           }
-        } else if (user.email == 'rosadelalbaxx@gmail.com') {
-          if (mounted) setState(() => _isAdmin = true);
         }
       } catch (e) {
-        if (user.email == 'rosadelalbaxx@gmail.com') {
-          if (mounted) setState(() => _isAdmin = true);
-        }
+        debugPrint("Error checkUserRole: $e");
       }
     }
   }
@@ -197,95 +193,91 @@ class _ReportScreenState extends State<ReportScreen> {
         title: const Text("Nuevo Reporte", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.orange,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.list_alt, color: Colors.white),
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyIncidentsScreen())),
-        ),
+        leading: _isTechnician || _isAdmin
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            )
+          : IconButton(
+              icon: const Icon(Icons.list_alt, color: Colors.white),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyIncidentsScreen())),
+            ),
         actions: [
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
-                .collection('notificaciones')
-                .where('uid_usuario', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-                .where('leida', isEqualTo: false)
-                .snapshots(),
-            builder: (context, snapshot) {
-              int unreadCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications, color: Colors.white),
-                    tooltip: 'Notificaciones',
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
-                  ),
-                  if (unreadCount > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
-                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                        child: Text(
-                          unreadCount > 9 ? '9+' : '$unreadCount',
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
+          if (!_isTechnician && !_isAdmin) ...[
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+                  .collection('notificaciones')
+                  .where('uid_usuario', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                  .where('leida', isEqualTo: false)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                int unreadCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications, color: Colors.white),
+                      tooltip: 'Notificaciones',
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          child: Text(
+                            unreadCount > 9 ? '9+' : '$unreadCount',
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.account_circle, color: Colors.white),
-            tooltip: 'Mi Perfil',
-            onPressed: () {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user != null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => UserProfileScreen(
-                      userId: user.uid,
-                      userEmail: user.email ?? "",
-                    ),
-                  ),
+                  ],
                 );
-              }
-            },
-          ),
-          if (_isTechnician && _especialidad != null)
-            IconButton(
-              icon: const Icon(Icons.engineering, color: Colors.white),
-              tooltip: 'Panel de Técnico',
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TechnicianPanelScreen(especialidad: _especialidad!))),
+              },
             ),
-          if (_isAdmin)
             IconButton(
-              icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminPanelScreen())),
+              icon: const Icon(Icons.account_circle, color: Colors.white),
+              tooltip: 'Mi Perfil',
+              onPressed: () {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UserProfileScreen(
+                        userId: user.uid,
+                        userEmail: user.email ?? "",
+                      ),
+                    ),
+                  );
+                }
+              },
             ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () async {
-              try {
-                final googleSignIn = GoogleSignIn();
-                if (await googleSignIn.isSignedIn()) {
-                  await googleSignIn.disconnect();
-                  await googleSignIn.signOut();
-                }
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              onPressed: () async {
+                try {
+                  final googleSignIn = GoogleSignIn();
+                  if (await googleSignIn.isSignedIn()) {
+                    await googleSignIn.disconnect();
+                    await googleSignIn.signOut();
+                  }
 
-                await FirebaseAuth.instance.signOut();
+                  await FirebaseAuth.instance.signOut();
 
-                if (kIsWeb) {
-                  reloadApp();
+                  if (kIsWeb) {
+                    reloadApp();
+                  }
+                } catch (e) {
+                  debugPrint("Error al cerrar sesión: $e");
                 }
-              } catch (e) {
-                debugPrint("Error al cerrar sesión: $e");
-              }
-            },
-          ),
+              },
+            ),
+          ],
         ],
       ),
       body: SingleChildScrollView(

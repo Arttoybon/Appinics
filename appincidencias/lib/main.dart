@@ -1,6 +1,8 @@
 import 'package:appincidencias/screens/dni_required_screen.dart';
 import 'package:appincidencias/screens/login_screen.dart';
 import 'package:appincidencias/screens/report_screen.dart';
+import 'package:appincidencias/screens/technician_panel_screen.dart';
+import 'package:appincidencias/screens/admin_panel_screen.dart'; // Añadido
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -217,12 +219,23 @@ class AuthWrapper extends StatelessWidget {
                 }
 
                 if (dni != null && dni.isNotEmpty) {
-                  return const ReportScreen();
+                  final String? rol = userData?['rol']?.toString().toLowerCase();
+                  final String? especialidad = userData?['especialidad'];
+
+                  if (rol == 'admin') {
+                    return AdminPanelScreen();
+                  }
+
+                  if (rol == 'tecnico' && especialidad != null) {
+                    return TechnicianPanelScreen(especialidad: especialidad);
+                  }
+
+                  return ReportScreen();
                 }
               }
 
               // Si no existe el documento o no tiene DNI, forzamos registro de DNI
-              return const DniRequiredScreen();
+              return DniRequiredScreen();
             },
           );
         }

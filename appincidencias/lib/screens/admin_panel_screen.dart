@@ -1,8 +1,13 @@
 import 'package:appincidencias/screens/incident_details_screen.dart';
+import 'package:appincidencias/screens/my_incidents_screen.dart';
+import 'package:appincidencias/screens/report_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:appincidencias/utils/web_reload/web_reload.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});
@@ -213,6 +218,37 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           title: const Text("Gestión Municipal", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           backgroundColor: Colors.orange,
           iconTheme: const IconThemeData(color: Colors.white),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              tooltip: 'Crear Incidencia',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportScreen())),
+            ),
+            IconButton(
+              icon: const Icon(Icons.list_alt),
+              tooltip: 'Mis Incidencias',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyIncidentsScreen())),
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Cerrar Sesión',
+              onPressed: () async {
+                try {
+                  final googleSignIn = GoogleSignIn();
+                  if (await googleSignIn.isSignedIn()) {
+                    await googleSignIn.disconnect();
+                    await googleSignIn.signOut();
+                  }
+                  await FirebaseAuth.instance.signOut();
+                  if (kIsWeb) {
+                    reloadApp();
+                  }
+                } catch (e) {
+                  debugPrint("Error al cerrar sesión: $e");
+                }
+              },
+            ),
+          ],
           bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.people), text: "Roles"),

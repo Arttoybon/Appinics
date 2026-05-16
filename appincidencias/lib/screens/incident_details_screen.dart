@@ -61,7 +61,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
           
           if (mounted) {
             setState(() {
-              if (rol == 'admin' || user.email == 'rosadelalbaxx@gmail.com') {
+              if (rol == 'admin') {
                 _isAdmin = true;
                 _fetchTechnicians(); 
               } else if (rol == 'tecnico') {
@@ -70,14 +70,9 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
               }
             });
           }
-        } else if (user.email == 'rosadelalbaxx@gmail.com') {
-          if (mounted) setState(() => _isAdmin = true);
         }
       } catch (e) {
         debugPrint("Error privileges: $e");
-        if (user.email == 'rosadelalbaxx@gmail.com') {
-          if (mounted) setState(() => _isAdmin = true);
-        }
       }
     }
   }
