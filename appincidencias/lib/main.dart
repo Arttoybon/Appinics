@@ -177,6 +177,7 @@ class AuthWrapper extends StatelessWidget {
                 final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
                 final String? dni = userData?['dni'];
                 final bool isBlocked = userData?['estaBloqueado'] == true;
+                final String? rol = userData?['rol']?.toString().toLowerCase();
 
                 if (isBlocked) {
                   return Scaffold(
@@ -219,18 +220,43 @@ class AuthWrapper extends StatelessWidget {
                 }
 
                 if (dni != null && dni.isNotEmpty) {
-                  final String? rol = userData?['rol']?.toString().toLowerCase();
                   final String? especialidad = userData?['especialidad'];
 
+                  // Definir color según rol
+                  Color primaryColor = Colors.orange;
                   if (rol == 'admin') {
-                    return AdminPanelScreen();
+                    primaryColor = Colors.green;
+                  } else if (rol == 'tecnico') {
+                    primaryColor = Colors.blue;
                   }
 
-                  if (rol == 'tecnico' && especialidad != null) {
-                    return TechnicianPanelScreen(especialidad: especialidad);
+                  Widget mainScreen;
+                  if (rol == 'admin') {
+                    mainScreen = AdminPanelScreen();
+                  } else if (rol == 'tecnico' && especialidad != null) {
+                    mainScreen = TechnicianPanelScreen(especialidad: especialidad);
+                  } else {
+                    mainScreen = const ReportScreen();
                   }
 
-                  return ReportScreen();
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      primaryColor: primaryColor,
+                      colorScheme: ColorScheme.fromSeed(seedColor: primaryColor),
+                      appBarTheme: AppBarTheme(
+                        backgroundColor: primaryColor,
+                        iconTheme: const IconThemeData(color: Colors.white),
+                        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      elevatedButtonTheme: ElevatedButtonThemeData(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    child: mainScreen,
+                  );
                 }
               }
 

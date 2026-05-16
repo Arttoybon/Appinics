@@ -211,12 +211,13 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Gestión Municipal", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          backgroundColor: Colors.orange,
+          backgroundColor: themeColor,
           iconTheme: const IconThemeData(color: Colors.white),
           actions: [
             IconButton(
@@ -414,7 +415,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   label: Text(status),
                   selected: isSelected,
                   onSelected: (val) => setState(() => _selectedStatusFilter = status),
-                  selectedColor: Colors.orange,
+                  selectedColor: Theme.of(context).primaryColor,
                   labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
                 ),
               );

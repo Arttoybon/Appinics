@@ -49,6 +49,7 @@ class _DniRequiredScreenState extends State<DniRequiredScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -57,7 +58,7 @@ class _DniRequiredScreenState extends State<DniRequiredScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.badge_rounded, size: 100, color: Colors.orange),
+              Icon(Icons.badge_rounded, size: 100, color: themeColor),
               const SizedBox(height: 30),
               const Text(
                 "¡Casi listo!",
@@ -74,7 +75,7 @@ class _DniRequiredScreenState extends State<DniRequiredScreen> {
                 controller: _dniController,
                 decoration: InputDecoration(
                   hintText: "Escribe tu DNI / NIE aquí",
-                  prefixIcon: const Icon(Icons.edit_document),
+                  prefixIcon: Icon(Icons.edit_document, color: themeColor),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
                 ),
               ),
@@ -85,7 +86,7 @@ class _DniRequiredScreenState extends State<DniRequiredScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _saveDni,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
+                    backgroundColor: themeColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
                   child: _isLoading

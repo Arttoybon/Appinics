@@ -188,10 +188,11 @@ class _ReportScreenState extends State<ReportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     return Scaffold(
       appBar: AppBar(
         title: const Text("Nuevo Reporte", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.orange,
+        backgroundColor: themeColor,
         centerTitle: true,
         leading: _isTechnician || _isAdmin
           ? IconButton(
@@ -297,11 +298,11 @@ class _ReportScreenState extends State<ReportScreen> {
                   onTap: () => setState(() => _categoriaSeleccionada = _categorias[index]['nombre']),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: seleccionada ? Colors.orange.withOpacity(0.2) : Colors.grey[100],
-                      border: Border.all(color: seleccionada ? Colors.orange : Colors.transparent, width: 2),
+                      color: seleccionada ? themeColor.withOpacity(0.2) : Colors.grey[100],
+                      border: Border.all(color: seleccionada ? themeColor : Colors.transparent, width: 2),
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(_categorias[index]['icon'], color: Colors.orange, size: 30), Text(_categorias[index]['nombre'], style: const TextStyle(fontWeight: FontWeight.bold))]),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(_categorias[index]['icon'], color: themeColor, size: 30), Text(_categorias[index]['nombre'], style: const TextStyle(fontWeight: FontWeight.bold))]),
                   ),
                 );
               },
@@ -391,7 +392,7 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
             ),
             const SizedBox(height: 30),
-            SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _isLoading ? null : _enviarReporte, style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENVIAR", style: TextStyle(color: Colors.white)))),
+            SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _isLoading ? null : _enviarReporte, style: ElevatedButton.styleFrom(backgroundColor: themeColor), child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENVIAR", style: TextStyle(color: Colors.white)))),
           ],
         ),
       ),

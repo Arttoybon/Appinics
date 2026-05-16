@@ -142,6 +142,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     final currentUser = FirebaseAuth.instance.currentUser;
     final bool isMyProfile = currentUser?.uid == widget.userId;
 
@@ -155,7 +156,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Perfil de Usuario", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.orange,
+        backgroundColor: themeColor,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           if (isMyProfile)
@@ -174,15 +175,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ],
       ),
       body: _isLoading
-        ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+        ? Center(child: CircularProgressIndicator(color: themeColor))
         : Column(
             children: [
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  border: const Border(bottom: BorderSide(color: Colors.orange, width: 0.5)),
+                  color: themeColor.withOpacity(0.1),
+                  border: Border(bottom: BorderSide(color: themeColor, width: 0.5)),
                 ),
                 child: Column(
                   children: [
@@ -197,16 +198,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                     Text(
                       _formatRole(_currentRole, _currentSpecialty),
-                      style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: themeColor, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 20),
 
                     // CAMPOS EDITABLES
-                    _buildEditableField("Nombre Completo", _nameController, Icons.person, _isEditing),
+                    _buildEditableField("Nombre Completo", _nameController, Icons.person, _isEditing, themeColor),
                     const SizedBox(height: 10),
-                    _buildEditableField("DNI", _dniController, Icons.badge, _isEditing),
+                    _buildEditableField("DNI", _dniController, Icons.badge, _isEditing, themeColor),
                     const SizedBox(height: 10),
-                    _buildEditableField("Teléfono", _phoneController, Icons.phone, _isEditing),
+                    _buildEditableField("Teléfono", _phoneController, Icons.phone, _isEditing, themeColor),
                   ],
                 ),
               ),
@@ -254,7 +255,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                     filterQuality: FilterQuality.medium,
                                   ),
                                 )
-                              : const Icon(Icons.report, color: Colors.orange),
+                              : Icon(Icons.report, color: themeColor),
                             title: Text(data['categoria'] ?? "Sin categoría", style: const TextStyle(fontWeight: FontWeight.bold)),
                             subtitle: Text("Estado: $estado\nFecha: $fechaStr"),
                             isThreeLine: true,
@@ -272,7 +273,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildEditableField(String label, TextEditingController controller, IconData icon, bool enabled) {
+  Widget _buildEditableField(String label, TextEditingController controller, IconData icon, bool enabled, Color themeColor) {
     return TextField(
       controller: controller,
       enabled: enabled,
@@ -280,7 +281,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       style: const TextStyle(fontWeight: FontWeight.bold),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: Colors.orange),
+        prefixIcon: Icon(icon, color: themeColor),
         border: enabled ? const OutlineInputBorder() : InputBorder.none,
         filled: enabled,
         fillColor: Colors.white,

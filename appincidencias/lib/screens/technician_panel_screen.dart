@@ -28,6 +28,7 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     // Consulta para obtener incidencias (el filtrado por especialidad se hará en el StreamBuilder para permitir "Otro")
     final query = FirebaseFirestore.instanceFor(
       app: Firebase.app(), 
@@ -38,7 +39,7 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Técnico: ${widget.especialidad}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.blueGrey,
+        backgroundColor: themeColor,
         iconTheme: const IconThemeData(color: Colors.white),
         automaticallyImplyLeading: false,
         actions: [
@@ -168,8 +169,8 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
                     label: const Text("Asignadas a mí"),
                     selected: _onlyShowAssigned,
                     onSelected: (val) => setState(() => _onlyShowAssigned = val),
-                    selectedColor: Colors.blueGrey.withOpacity(0.3),
-                    avatar: Icon(Icons.person, size: 16, color: _onlyShowAssigned ? Colors.blueGrey : Colors.grey),
+                    selectedColor: themeColor.withOpacity(0.3),
+                    avatar: Icon(Icons.person, size: 16, color: _onlyShowAssigned ? themeColor : Colors.grey),
                   ),
                 ),
                 // Chips de Estado
@@ -181,8 +182,8 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
                       label: Text(status),
                       selected: isSelected,
                       onSelected: (val) => setState(() => _selectedStatusFilter = status),
-                      selectedColor: Colors.orange.withOpacity(0.3),
-                      labelStyle: TextStyle(color: isSelected ? Colors.orange[900] : Colors.black),
+                      selectedColor: themeColor.withOpacity(0.3),
+                      labelStyle: TextStyle(color: isSelected ? themeColor : Colors.black),
                     ),
                   );
                 }).toList(),

@@ -346,6 +346,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     final user = FirebaseAuth.instance.currentUser;
     DateTime? fecha = (widget.data['fecha'] != null) ? (widget.data['fecha'] as Timestamp).toDate() : null;
     String fechaStr = fecha != null ? DateFormat('dd/MM/yyyy HH:mm').format(fecha) : "S/F";
@@ -362,7 +363,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Detalles", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
-        backgroundColor: Colors.orange, 
+        backgroundColor: themeColor,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [if (_isAdmin) IconButton(icon: const Icon(Icons.delete_forever), onPressed: _deleteIncident)],
       ),
@@ -405,9 +406,9 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.05),
+                        color: themeColor.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Colors.orange.withOpacity(0.2)),
+                        border: Border.all(color: themeColor.withOpacity(0.2)),
                       ),
                       child: Row(
                         children: [
@@ -420,7 +421,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text("REPORTADO POR:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.orange)),
+                                Text("REPORTADO POR:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: themeColor)),
                                 Text(reporterEmail, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                                 if ((canChangeStatus || _isAdmin) && widget.data['uid_usuario'] != null)
                                   const Text("Pulsa para ver perfil", style: TextStyle(fontSize: 10, color: Colors.blue, fontStyle: FontStyle.italic)),
@@ -428,7 +429,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                             ),
                           ),
                           if ((canChangeStatus || _isAdmin) && widget.data['uid_usuario'] != null)
-                            const Icon(Icons.chevron_right, color: Colors.orange, size: 20),
+                            Icon(Icons.chevron_right, color: themeColor, size: 20),
                         ],
                       ),
                     ),
@@ -497,7 +498,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                       onPressed: _openMap,
                       icon: const Icon(Icons.map, color: Colors.white),
                       label: const Text("ABRIR EN GOOGLE MAPS", style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                      style: ElevatedButton.styleFrom(backgroundColor: themeColor),
                     )
                   else
                     Container(
@@ -561,7 +562,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                               ),
                             ),
                           ),
-                          IconButton(icon: const Icon(Icons.send, color: Colors.orange), onPressed: _addComment),
+                          IconButton(icon: Icon(Icons.send, color: themeColor), onPressed: _addComment),
                         ],
                       ),
                     ),
