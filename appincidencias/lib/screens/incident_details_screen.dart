@@ -108,27 +108,51 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     if (user == null) return;
 
     try {
+      String role = 'user';
+      if (_isAdmin) role = 'admin';
+      else if (_isTechnician) role = 'tecnico';
+
       await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
           .collection('incidencias').doc(widget.docId).collection('comentarios').add({
         'texto': _commentController.text.trim(),
         'autor_email': user.email,
         'autor_uid': user.uid,
+        'autor_rol': role,
         'fecha': FieldValue.serverTimestamp(),
       });
 
-      // NOTIFICACIÓN PARA EL DUEÑO DE LA INCIDENCIA
+      // NOTIFICACIÓN
       final ownerUid = widget.data['uid_usuario'];
-      if (ownerUid != null && ownerUid != user.uid) {
-        await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
-            .collection('notificaciones').add({
-          'uid_usuario': ownerUid,
-          'titulo': 'Nuevo comentario',
-          'mensaje': '${user.email} ha comentado en tu incidencia de ${widget.data['categoria']}',
-          'incidencia_id': widget.docId,
-          'fecha': FieldValue.serverTimestamp(),
-          'leida': false,
-          'tipo': 'comentario'
-        });
+      final assignedUid = widget.data['asignado_a_uid'] ?? _assignedTo;
+
+      if (user.uid == ownerUid) {
+        // EL CIUDADANO RESPONDE -> Notificar al técnico asignado si existe
+        if (assignedUid != null) {
+          await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+              .collection('notificaciones').add({
+            'uid_usuario': assignedUid,
+            'titulo': 'Respuesta de ciudadano',
+            'mensaje': '${user.email} ha respondido en la incidencia de ${widget.data['categoria']}',
+            'incidencia_id': widget.docId,
+            'fecha': FieldValue.serverTimestamp(),
+            'leida': false,
+            'tipo': 'comentario'
+          });
+        }
+      } else {
+        // UN OFICIAL COMENTA -> Notificar al dueño de la incidencia
+        if (ownerUid != null && ownerUid != user.uid) {
+          await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+              .collection('notificaciones').add({
+            'uid_usuario': ownerUid,
+            'titulo': 'Nuevo comentario oficial',
+            'mensaje': 'Un responsable ha comentado en tu incidencia de ${widget.data['categoria']}',
+            'incidencia_id': widget.docId,
+            'fecha': FieldValue.serverTimestamp(),
+            'leida': false,
+            'tipo': 'comentario'
+          });
+        }
       }
 
       _commentController.clear();
@@ -355,8 +379,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     bool isOtro = (widget.data['categoria'] ?? "").toString().trim().toLowerCase() == "otro";
     bool canSelfAssign = _isTechnician && _assignedTo == null && (isOtro || _techSpecialty == (widget.data['categoria'] ?? "").toString().trim().toLowerCase());
     
-    bool canComment = _isAdmin || (_isTechnician && _assignedTo == user?.uid);
-
     // Email del creador de la incidencia
     String reporterEmail = widget.data['email_usuario'] ?? "Anónimo";
 
@@ -532,40 +554,54 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                         .orderBy('fecha', descending: false).snapshots(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) return const SizedBox();
+
+                      // Detectar si hay algún comentario de un oficial (Alguien que NO es el dueño)
+                      bool hasOfficialResponse = snapshot.data!.docs.any((doc) {
+                        final d = doc.data() as Map<String, dynamic>;
+                        return d['autor_uid'] != widget.data['uid_usuario'];
+                      });
+
+                      bool isOwner = widget.data['uid_usuario'] == user?.uid;
+                      bool canCommentNow = (_isAdmin && _assignedTo != null) ||
+                                          (_isTechnician && _assignedTo == user?.uid) ||
+                                          (isOwner && hasOfficialResponse);
+
                       return Column(
-                        children: snapshot.data!.docs.map((doc) {
-                          var cData = doc.data() as Map<String, dynamic>;
-                          String email = cData['autor_email'] ?? "Anónimo";
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: CircleAvatar(backgroundImage: NetworkImage(_getAvatarUrl(email)), radius: 15),
-                            title: Text(email, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                            subtitle: Text(cData['texto'] ?? ""),
-                          );
-                        }).toList(),
+                        children: [
+                          ...snapshot.data!.docs.map((doc) {
+                            var cData = doc.data() as Map<String, dynamic>;
+                            String email = cData['autor_email'] ?? "Anónimo";
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: CircleAvatar(backgroundImage: NetworkImage(_getAvatarUrl(email)), radius: 15),
+                              title: Text(email, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                              subtitle: Text(cData['texto'] ?? ""),
+                            );
+                          }).toList(),
+
+                          if (canCommentNow)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 20),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _commentController,
+                                      decoration: InputDecoration(
+                                        hintText: "Añadir comentario...",
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                                        isDense: true,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(icon: Icon(Icons.send, color: themeColor), onPressed: _addComment),
+                                ],
+                              ),
+                            ),
+                        ],
                       );
                     },
                   ),
-
-                  if (canComment) 
-                    Padding(
-                      padding: const EdgeInsets.only(top: 20),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _commentController,
-                              decoration: InputDecoration(
-                                hintText: "Añadir comentario...",
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-                                isDense: true,
-                              ),
-                            ),
-                          ),
-                          IconButton(icon: Icon(Icons.send, color: themeColor), onPressed: _addComment),
-                        ],
-                      ),
-                    ),
                 ],
               ),
             ),

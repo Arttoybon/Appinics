@@ -1,0 +1,89 @@
+================================================================================
+      PROYECTO DE MODERNIZACIÓN DIGITAL: CANTILLANA REPORT
+      Propuesta Estratégica para el Excelentísimo Ayuntamiento de Cantillana
+================================================================================
+Objetivo: Transformar la gestión de incidencias de un modelo analógico (papel/voz)
+           a un modelo de Ciudad Inteligente (Smart City).
+Duración estimada: 20-25 minutos.
+================================================================================
+
+1. EL SALTO AL SIGLO XXI (3 Minutos)
+--------------------------------------------------------------------------------
+- Apertura: "Actualmente, Cantillana depende del teléfono, el correo que se
+  pierde o el vecino que tiene que ir físicamente al ayuntamiento. Esto genera
+  una 'memoria fragmentada': nadie sabe exactamente cuántos problemas hay hoy
+  sin resolver."
+- El Concepto: Cantillana Report no es solo una app, es el PRIMER CEREBRO DIGITAL
+  del municipio. Centraliza lo que hoy está disperso.
+- Impacto: Pasar de la gestión reactiva (esperar la queja) a la gestión
+  proactiva (datos en tiempo real).
+
+2. EL FIN DE LAS QUEJAS ANÓNIMAS Y EL "SPAM" (4 Minutos)
+--------------------------------------------------------------------------------
+- Problema común: El miedo a que la app sea un "muro de quejas" sin control.
+- Seguridad Integrada (DNI + EMAIL):
+  * A diferencia de redes sociales, aquí cada reporte está ligado a un DNI
+    verificado y un correo real.
+  * Si un usuario abusa, el administrador lo bloquea con un clic.
+- Seriedad Institucional: La app proyecta una imagen de orden. El ciudadano
+  siente que si usa la app, su problema entra en un canal oficial, no en un
+  saco roto.
+
+3. DEMO PASO A PASO: DEL CIUDADANO AL ALCALDE (8 Minutos)
+--------------------------------------------------------------------------------
+[PASO A: EL CIUDADANO]
+- Mostrar la interfaz limpia. Explicar las 5 categorías (Alumbrado, Limpieza,
+  Vías, Mobiliario, Otros).
+- El Valor del GPS: "Cuando un vecino reporta un bache en la calle Real, el
+  sistema captura la coordenada GPS exacta. El técnico ya no tiene que buscar
+  el bache; su móvil le guía directamente hasta él."
+- La Foto: Evidencia visual que evita desplazamientos innecesarios para
+  "valorar" el problema. Ya lo vemos en la pantalla.
+
+[PASO B: EL TÉCNICO MUNICIPAL]
+- "El operario de limpieza solo recibe avisos de limpieza. El electricista solo
+  de alumbrado."
+- Gestión de Estados: Mostrar cómo el técnico marca "En Proceso". En ese
+  instante, el móvil del ciudadano suena: "El Ayuntamiento está trabajando en
+  su incidencia". Esto reduce la ansiedad y las llamadas preguntando "¿qué pasa
+  con lo mío?".
+
+[PASO C: EL ADMINISTRADOR (CONTROL TOTAL)]
+- Mostrar el Panel de Gestión. Es la "torre de control".
+- Capacidad de reasignar tareas y ver estadísticas: ¿Qué categoría es la más
+  problemática? ¿Cuánto tiempo tardamos de media en arreglar una farola?
+
+4. BENEFICIOS ECONÓMICOS Y OPERATIVOS (3 Minutos)
+--------------------------------------------------------------------------------
+- Ahorro en Combustible: Los técnicos van directos al punto GPS, sin vueltas.
+- Eficiencia del Personal: Menos tiempo gestionando papeles y llamadas, más
+  tiempo reparando.
+- Transparencia Política: Al final del mes, el ayuntamiento puede publicar:
+  "Este mes hemos resuelto 150 incidencias gracias a Cantillana Report". Datos
+  reales frente a opiniones.
+
+5. ESCALABILIDAD: EL FUTURO DE CANTILLANA (2 Minutos)
+--------------------------------------------------------------------------------
+- "Este es el primer paso. Una vez que el ciudadano tiene la app en su móvil,
+  Cantillana ya tiene un canal de comunicación directo."
+- Futuro: Avisos de cortes de agua, bandos municipales, agenda cultural, todo
+  en la misma plataforma.
+
+6. CIERRE: LA DECISIÓN ESTRATÉGICA (2 Minutos)
+--------------------------------------------------------------------------------
+- "No tener una app hoy es ser invisibles para los ciudadanos más jóvenes y
+  perder eficiencia con los mayores. Cantillana Report es la herramienta para
+  que el ayuntamiento trabaje mejor y el ciudadano viva mejor."
+
+================================================================================
+ANEXO PARA EL PRESENTADOR: CÓMO RESPONDER A DUDAS
+--------------------------------------------------------------------------------
+- ¿Y los mayores que no saben usar apps? -> "La app no quita el teléfono, pero
+  al liberar a los funcionarios de las quejas de los jóvenes, pueden atender
+  mejor por teléfono a los mayores."
+- ¿Es caro mantener esto? -> "Funciona sobre la infraestructura de Google
+  (Firebase), lo que garantiza que nunca se caiga y sea extremadamente
+  eficiente en costes."
+- ¿Qué pasa si no hay cobertura? -> "La app está diseñada para ser ligera y
+  funcionar en condiciones de red básicas."
+================================================================================

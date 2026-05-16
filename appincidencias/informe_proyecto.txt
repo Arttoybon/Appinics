@@ -41,7 +41,8 @@
 
 3. PROTOTIPO FUNCIONAL DESPLEGADO
 --------------------------------------------------------------------------------
-* URL de acceso: https://alumno24.fpcantillana.org/
+* URL de acceso: https://alumno24.fpcantillana.org/web 
+https://github.com/Arttoybon/Appinics.git
 * Credenciales de prueba:
   - Login con Google (Cualquier cuenta Gmail autorizada).
   - Registro libre mediante Email/Password dentro de la app.

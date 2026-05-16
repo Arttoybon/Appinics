@@ -1,0 +1,69 @@
+================================================================================
+          PRESENTACIÓN ESTRATÉGICA: CANTILLANA REPORT
+================================================================================
+Objetivo: Convencer al Ayuntamiento/Cliente del valor de la plataforma.
+Duración estimada: 15-20 minutos.
+================================================================================
+
+1. INTRODUCCIÓN Y VISIÓN (2 Minutos)
+--------------------------------------------------------------------------------
+- "Señores, hoy no hablamos de una aplicación móvil más. Hablamos de transformar
+  cómo el ciudadano se siente escuchado por su municipio."
+- Contexto: El sistema actual de llamadas y correos es opaco, lento y genera
+  frustración tanto en el vecino como en el trabajador municipal.
+- La Propuesta: "Cantillana Report" es un ecosistema digital que conecta en
+  tiempo real al ciudadano, al técnico y al gestor.
+
+2. SEGURIDAD Y CONFIANZA: EL FILTRO DE CALIDAD (3 Minutos)
+--------------------------------------------------------------------------------
+- El gran miedo de un ayuntamiento: "Me van a llenar la app de reportes falsos".
+- Nuestra solución (DEMO):
+  * Verificación de identidad: Obligatoriedad de DNI y Email verificado.
+  * Trazabilidad total: Cada reporte tiene un nombre y una cara detrás.
+  * Moderación activa: Capacidad de bloquear usuarios que hagan mal uso.
+- Beneficio: Datos limpios, veraces y útiles para la toma de decisiones.
+
+3. FLUJO DE TRABAJO INTELIGENTE (EL CIUDADANO) (4 Minutos)
+--------------------------------------------------------------------------------
+- Simplicidad Radical: Una interfaz diseñada para todas las edades.
+- Geolocalización de Precisión: Se acabó el "hay una farola rota por la calle Real".
+  La app captura las coordenadas exactas y las envía al técnico.
+- Evidencia Visual: Integración con cámara para fotos reales del problema.
+- Feedback Constante: El ciudadano recibe notificaciones cuando su incidencia
+  pasa de "Pendiente" a "En Proceso" y finalmente a "Resuelta".
+
+4. OPTIMIZACIÓN DE RECURSOS (EL TÉCNICO Y ADMIN) (4 Minutos)
+--------------------------------------------------------------------------------
+- Especialización: El electricista no pierde tiempo viendo baches. El sistema
+  filtra automáticamente las tareas por especialidad (Alumbrado, Limpieza, etc.).
+- Gestión de Estados: Un flujo de trabajo claro que elimina duplicidades y
+  olvidos.
+- Panel de Control (Web/Desktop): Una vista panorámica del estado del municipio.
+  ¿Cuántos baches hay sin arreglar? ¿Qué barrio tiene más quejas de limpieza?
+  La app responde a estas preguntas en segundos.
+
+5. SOLIDEZ TECNOLÓGICA (EL "BAJO EL CAPÓ") (2 Minutos)
+--------------------------------------------------------------------------------
+- Multiplataforma: Una sola inversión para tener la app en Android, iPhone y Web.
+- Sincronización en Tiempo Real: Usamos Firebase de Google. Si un técnico marca
+  algo como arreglado, el ciudadano lo ve en su móvil al instante.
+- Escalabilidad: La app está lista para crecer. Hoy son baches, mañana puede
+  ser gestión de parques o avisos municipales urgentes.
+
+6. EL VALOR POLÍTICO Y CIUDADANO (CONCLUSIÓN) (2 Minutos)
+--------------------------------------------------------------------------------
+- Imagen de Marca: Cantillana se posiciona como una "Smart City" moderna.
+- Transparencia: El ayuntamiento demuestra que trabaja y gestiona con datos.
+- Eficiencia Económica: Reducción drástica en tiempos de gestión y respuesta.
+
+"Cantillana Report no es un gasto, es la herramienta de gestión más potente
+que su ayuntamiento puede tener hoy en día."
+
+================================================================================
+NOTAS PARA LA DEMO EN VIVO:
+1. Mostrar el registro con DNI.
+2. Reportar una incidencia ficticia (Foto + GPS).
+3. Abrir el Panel de Admin y mostrar cómo se asigna el rol de "Técnico".
+4. Ver la incidencia en el panel del Técnico y cambiarla a "Resuelta".
+5. Mostrar la notificación instantánea en el móvil del "Ciudadano".
+================================================================================
