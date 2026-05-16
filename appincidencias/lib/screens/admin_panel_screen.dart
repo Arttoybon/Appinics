@@ -431,15 +431,19 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               final docs = snapshot.data!.docs.where((doc) {
                 final data = doc.data() as Map<String, dynamic>;
 
-                // Filtro por Estado
-                final statusMatch = _selectedStatusFilter == "Todas" || (data['estado'] ?? "Pendiente") == _selectedStatusFilter;
-
-                // Filtro por ID o Descripción
                 final q = _incidentSearchQuery.trim().toLowerCase();
-                final idMatch = doc.id.toLowerCase().contains(q);
-                final descMatch = (data['descripcion'] ?? "").toString().toLowerCase().contains(q);
+                final bool isSearching = q.isNotEmpty;
 
-                return statusMatch && (idMatch || descMatch);
+                if (isSearching) {
+                  // Modo Búsqueda: Ignoramos botones de estado
+                  final idMatch = doc.id.toLowerCase().contains(q);
+                  final descMatch = (data['descripcion'] ?? "").toString().toLowerCase().contains(q);
+                  return idMatch || descMatch;
+                } else {
+                  // Modo Normal: Aplicamos filtro por estado
+                  final statusMatch = _selectedStatusFilter == "Todas" || (data['estado'] ?? "Pendiente") == _selectedStatusFilter;
+                  return statusMatch;
+                }
               }).toList();
 
               if (docs.isEmpty) {

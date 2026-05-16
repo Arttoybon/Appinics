@@ -202,28 +202,33 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
 
                 final currentUser = FirebaseAuth.instance.currentUser;
 
+                final queryText = _searchQuery.trim().toLowerCase();
+                final bool isSearching = queryText.isNotEmpty;
+
                 // Filtrado por especialidad + Categoría "Otro" + Búsqueda + Estado + Asignación
                 final docs = snapshot.data!.docs.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
-                  final docId = doc.id.toLowerCase();
-                  final descripcion = (data['descripcion'] ?? "").toString().toLowerCase();
                   final categoria = (data['categoria'] ?? "").toString().trim();
-                  final estado = data['estado'] ?? 'Pendiente';
-                  final asignadoA = data['asignado_a_uid'];
 
-                  // 1. Interés del técnico: Su especialidad O "Otro"
-                  bool esDeSuInteres = categoria == widget.especialidad || categoria == "Otro";
+                  // Regla 0: Siempre debe ser de su especialidad u "Otro"
+                  bool esDeSuInteres = (categoria == widget.especialidad || categoria == "Otro");
+                  if (!esDeSuInteres) return false;
 
-                  // 2. Filtro de Asignación
-                  bool cumpleAsignacion = !_onlyShowAssigned || (asignadoA == currentUser?.uid);
+                  if (isSearching) {
+                    // Modo Búsqueda: Ignoramos botones de estado y asignación
+                    final docId = doc.id.toLowerCase();
+                    final descripcion = (data['descripcion'] ?? "").toString().toLowerCase();
+                    return docId.contains(queryText) || descripcion.contains(queryText);
+                  } else {
+                    // Modo Normal: Aplicamos todos los filtros
+                    final estado = data['estado'] ?? 'Pendiente';
+                    final asignadoA = data['asignado_a_uid'];
 
-                  // 3. Filtro de Estado
-                  bool cumpleEstado = _selectedStatusFilter == "Todas" || estado == _selectedStatusFilter;
+                    bool cumpleAsignacion = !_onlyShowAssigned || (asignadoA == currentUser?.uid);
+                    bool cumpleEstado = (_selectedStatusFilter == "Todas" || estado == _selectedStatusFilter);
 
-                  // 4. Filtro de Búsqueda de texto
-                  bool coincideBusqueda = docId.contains(_searchQuery) || descripcion.contains(_searchQuery);
-
-                  return esDeSuInteres && cumpleAsignacion && cumpleEstado && coincideBusqueda;
+                    return cumpleAsignacion && cumpleEstado;
+                  }
                 }).toList();
 
                 if (docs.isEmpty) {
