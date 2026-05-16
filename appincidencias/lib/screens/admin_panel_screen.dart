@@ -271,214 +271,348 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   }
 
   Widget _buildUserManagement() {
+    final themeColor = Theme.of(context).primaryColor;
     final usersQuery = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native').collection('usuarios');
     final incidentsQuery = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native').collection('incidencias');
 
-    return Column(children: [
-      Padding(
-        padding: const EdgeInsets.all(15),
-        child: TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: "Buscar por email...", 
-            prefixIcon: const Icon(Icons.search), 
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isWide = constraints.maxWidth > 800;
+
+        return Column(children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: "Buscar por email...",
+                      prefixIcon: const Icon(Icons.search),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                    onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
+                  ),
+                ),
+              ],
+            ),
           ),
-          onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
-        ),
-      ),
-      Expanded(
-        child: StreamBuilder<QuerySnapshot>(
-          stream: usersQuery.snapshots(),
-          builder: (context, userSnapshot) {
-            if (!userSnapshot.hasData) return const Center(child: CircularProgressIndicator());
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: usersQuery.snapshots(),
+              builder: (context, userSnapshot) {
+                if (!userSnapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-            return StreamBuilder<QuerySnapshot>(
-              stream: incidentsQuery.snapshots(),
-              builder: (context, incidentSnapshot) {
-                // Obtenemos todos los emails de los usuarios que han reportado incidencias
-                Set<String> reporters = {};
-                if (incidentSnapshot.hasData) {
-                  for (var doc in incidentSnapshot.data!.docs) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    if (data['email_usuario'] != null) {
-                      reporters.add(data['email_usuario'].toString().toLowerCase());
+                return StreamBuilder<QuerySnapshot>(
+                  stream: incidentsQuery.snapshots(),
+                  builder: (context, incidentSnapshot) {
+                    Set<String> reporters = {};
+                    if (incidentSnapshot.hasData) {
+                      for (var doc in incidentSnapshot.data!.docs) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        if (data['email_usuario'] != null) {
+                          reporters.add(data['email_usuario'].toString().toLowerCase());
+                        }
+                      }
                     }
-                  }
-                }
 
-                // Lista de usuarios registrados en la tabla 'usuarios'
-                final registeredUsers = userSnapshot.data!.docs.map((d) => d.data() as Map<String, dynamic>).toList();
-                final registeredEmails = registeredUsers.map((u) => u['email'].toString().toLowerCase()).toSet();
+                    final registeredUsers = userSnapshot.data!.docs.map((d) => d.data() as Map<String, dynamic>).toList();
+                    final registeredEmails = registeredUsers.map((u) => u['email'].toString().toLowerCase()).toSet();
+                    List<String> missingEmails = reporters.where((email) => !registeredEmails.contains(email)).toList();
 
-                // Identificamos emails que reportaron pero no están registrados como usuarios
-                List<String> missingEmails = reporters.where((email) => !registeredEmails.contains(email)).toList();
+                    final docs = userSnapshot.data!.docs.where((d) {
+                      final data = d.data() as Map<String, dynamic>;
+                      return data['email'].toString().toLowerCase().contains(_searchQuery);
+                    }).toList();
 
-                final docs = userSnapshot.data!.docs.where((d) {
-                  final data = d.data() as Map<String, dynamic>;
-                  bool emailMatch = data['email'].toString().toLowerCase().contains(_searchQuery);
-                  return emailMatch;
-                }).toList();
-
-                return ListView(
-                  children: [
-                    if (missingEmails.isNotEmpty && _searchQuery.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        margin: const EdgeInsets.all(15),
-                        decoration: BoxDecoration(color: Colors.amber[100], borderRadius: BorderRadius.circular(10)),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text("⚠️ ATENCIÓN: Usuarios no registrados", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
-                            const Text("Estos emails han enviado incidencias pero aún no tienen perfil oficial (deben entrar a la app para activarse):", style: TextStyle(fontSize: 12)),
-                            const SizedBox(height: 5),
-                            ...missingEmails.map((e) => Text("• $e", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                          ],
+                    if (isWide) {
+                      // VISTA WEB: Grid de Usuarios
+                      return GridView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 15,
+                          mainAxisSpacing: 15,
+                          childAspectRatio: 2.5,
                         ),
-                      ),
-                    ...docs.map((doc) {
-                      var data = doc.data() as Map<String, dynamic>;
-                      String email = data['email'] ?? "";
-                      String rol = data['rol'] ?? 'user';
-                      String? esp = data['especialidad'];
-                      bool isBlocked = data['estaBloqueado'] == true;
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                        color: isBlocked ? Colors.red[50] : null,
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage: NetworkImage(_getAvatarUrl(email)),
-                            child: isBlocked ? const Icon(Icons.block, color: Colors.red, size: 30) : null,
-                          ),
-                          title: Row(
-                            children: [
-                              Text(email, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              if (isBlocked) ...[
-                                const SizedBox(width: 8),
-                                const Text("BLOQUEADO", style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold)),
-                              ]
-                            ],
-                          ),
-                          subtitle: Text("Rol: ${rol.toUpperCase()} ${esp != null ? '($esp)' : ''}"),
-                          trailing: const Icon(Icons.edit, size: 20),
-                          onTap: () => _showRoleDialog(doc.id, email, rol, esp, isBlocked),
-                        ),
+                        itemCount: docs.length + (missingEmails.isNotEmpty && _searchQuery.isEmpty ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (missingEmails.isNotEmpty && _searchQuery.isEmpty && index == 0) {
+                            return _buildMissingUsersAlert(missingEmails);
+                          }
+                          final actualIndex = (missingEmails.isNotEmpty && _searchQuery.isEmpty) ? index - 1 : index;
+                          return _buildUserCard(docs[actualIndex], themeColor);
+                        },
                       );
-                    }).toList(),
-                  ],
+                    } else {
+                      // VISTA MÓVIL: Lista normal
+                      return ListView(
+                        children: [
+                          if (missingEmails.isNotEmpty && _searchQuery.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(15),
+                              child: _buildMissingUsersAlert(missingEmails),
+                            ),
+                          ...docs.map((doc) => _buildUserCard(doc, themeColor)).toList(),
+                        ],
+                      );
+                    }
+                  },
                 );
               },
-            );
-          },
+            ),
+          ),
+        ]);
+      },
+    );
+  }
+
+  Widget _buildMissingUsersAlert(List<String> missingEmails) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: Colors.amber[100], borderRadius: BorderRadius.circular(12)),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                SizedBox(width: 10),
+                Text("Usuarios no registrados", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+              ],
+            ),
+            const SizedBox(height: 5),
+            const Text("Han enviado incidencias pero aún no tienen perfil oficial:", style: TextStyle(fontSize: 11)),
+            const SizedBox(height: 10),
+            ...missingEmails.take(5).map((e) => Text("• $e", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold))),
+            if (missingEmails.length > 5) Text("... y ${missingEmails.length - 5} más", style: const TextStyle(fontSize: 10)),
+          ],
         ),
       ),
-    ]);
+    );
+  }
+
+  Widget _buildUserCard(DocumentSnapshot doc, Color themeColor) {
+    var data = doc.data() as Map<String, dynamic>;
+    String email = data['email'] ?? "";
+    String rol = data['rol'] ?? 'user';
+    String? esp = data['especialidad'];
+    bool isBlocked = data['estaBloqueado'] == true;
+
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: isBlocked ? Colors.red[50] : null,
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(10),
+        leading: CircleAvatar(
+          backgroundImage: NetworkImage(_getAvatarUrl(email)),
+          child: isBlocked ? const Icon(Icons.block, color: Colors.red, size: 25) : null,
+        ),
+        title: Text(email, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Rol: ${rol.toUpperCase()}", style: const TextStyle(fontSize: 11)),
+            if (esp != null) Text("Espec.: $esp", style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic)),
+            if (isBlocked) const Text("BLOQUEADO", style: TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        trailing: Icon(Icons.edit, size: 18, color: themeColor),
+        onTap: () => _showRoleDialog(doc.id, email, rol, esp, isBlocked),
+      ),
+    );
   }
 
   Widget _buildIncidentsList() {
+    final themeColor = Theme.of(context).primaryColor;
     final query = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native').collection('incidencias').orderBy('fecha', descending: true);
-    return Column(
-      children: [
-        // Barra de búsqueda por ID o Descripción
-        Padding(
-          padding: const EdgeInsets.all(15),
-          child: TextField(
-            controller: _incidentSearchController,
-            decoration: InputDecoration(
-              hintText: "Buscar por ID o descripción...",
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _incidentSearchQuery.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      _incidentSearchController.clear();
-                      setState(() => _incidentSearchQuery = "");
-                    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isWide = constraints.maxWidth > 800;
+
+        return Column(
+          children: [
+            // Barra de búsqueda y Filtros en una sola fila si es Web
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: isWide
+                ? Row(
+                    children: [
+                      Expanded(flex: 2, child: _buildIncidentSearchBar()),
+                      const SizedBox(width: 20),
+                      Expanded(flex: 3, child: _buildStatusFilters()),
+                    ],
                   )
-                : null,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))
+                : Column(
+                    children: [
+                      _buildIncidentSearchBar(),
+                      const SizedBox(height: 10),
+                      _buildStatusFilters(),
+                    ],
+                  ),
             ),
-            onChanged: (v) => setState(() => _incidentSearchQuery = v.toLowerCase()),
-          ),
-        ),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-          child: Row(
-            children: ["Todas", "Pendiente", "En proceso", "Resuelta"].map((status) {
-              bool isSelected = _selectedStatusFilter == status;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: FilterChip(
-                  label: Text(status),
-                  selected: isSelected,
-                  onSelected: (val) => setState(() => _selectedStatusFilter = status),
-                  selectedColor: Theme.of(context).primaryColor,
-                  labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: query.snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-              
-              final docs = snapshot.data!.docs.where((doc) {
-                final data = doc.data() as Map<String, dynamic>;
 
-                final q = _incidentSearchQuery.trim().toLowerCase();
-                final bool isSearching = q.isNotEmpty;
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: query.snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-                if (isSearching) {
-                  // Modo Búsqueda: Ignoramos botones de estado
-                  final idMatch = doc.id.toLowerCase().contains(q);
-                  final descMatch = (data['descripcion'] ?? "").toString().toLowerCase().contains(q);
-                  return idMatch || descMatch;
-                } else {
-                  // Modo Normal: Aplicamos filtro por estado
-                  final statusMatch = _selectedStatusFilter == "Todas" || (data['estado'] ?? "Pendiente") == _selectedStatusFilter;
-                  return statusMatch;
-                }
-              }).toList();
+                  final docs = snapshot.data!.docs.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final q = _incidentSearchQuery.trim().toLowerCase();
+                    final bool isSearching = q.isNotEmpty;
 
-              if (docs.isEmpty) {
-                return const Center(child: Text("No se encontraron incidencias"));
-              }
+                    if (isSearching) {
+                      final idMatch = doc.id.toLowerCase().contains(q);
+                      final descMatch = (data['descripcion'] ?? "").toString().toLowerCase().contains(q);
+                      return idMatch || descMatch;
+                    } else {
+                      final statusMatch = _selectedStatusFilter == "Todas" || (data['estado'] ?? "Pendiente") == _selectedStatusFilter;
+                      return statusMatch;
+                    }
+                  }).toList();
 
-              return ListView.builder(
-                itemCount: docs.length,
-                itemBuilder: (context, index) {
-                  var doc = docs[index];
-                  var data = doc.data() as Map<String, dynamic>;
-                  return ListTile(
-                    leading: data['foto_url'] != null 
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            data['foto_url'],
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
-                            filterQuality: FilterQuality.medium,
-                          ),
-                        )
-                      : const CircleAvatar(child: Icon(Icons.report)),
-                    title: Text(data['categoria'] ?? "General", style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(data['descripcion'] ?? "", maxLines: 1),
-                    trailing: Text("#${doc.id.substring(0,6)}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => IncidentDetailsScreen(data: data, docId: doc.id))),
-                  );
+                  if (docs.isEmpty) {
+                    return const Center(child: Text("No se encontraron incidencias"));
+                  }
+
+                  // GRID para WEB, LISTA para MÓVIL
+                  return isWide
+                    ? GridView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 15,
+                          mainAxisSpacing: 15,
+                          childAspectRatio: 3.5,
+                        ),
+                        itemCount: docs.length,
+                        itemBuilder: (context, index) => _buildIncidentCard(docs[index], themeColor),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        itemCount: docs.length,
+                        itemBuilder: (context, index) => _buildIncidentCard(docs[index], themeColor),
+                      );
                 },
-              );
-            },
-          ),
-        ),
-      ],
+              ),
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  Widget _buildIncidentSearchBar() {
+    return TextField(
+      controller: _incidentSearchController,
+      decoration: InputDecoration(
+        hintText: "Buscar por ID o descripción...",
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _incidentSearchQuery.isNotEmpty
+          ? IconButton(
+              icon: const Icon(Icons.clear),
+              onPressed: () {
+                _incidentSearchController.clear();
+                setState(() => _incidentSearchQuery = "");
+              }
+            )
+          : null,
+        filled: true,
+        fillColor: Colors.grey[50],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(vertical: 0),
+      ),
+      onChanged: (v) => setState(() => _incidentSearchQuery = v.toLowerCase()),
+    );
+  }
+
+  Widget _buildStatusFilters() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: ["Todas", "Pendiente", "En proceso", "Resuelta"].map((status) {
+          bool isSelected = _selectedStatusFilter == status;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: FilterChip(
+              label: Text(status),
+              selected: isSelected,
+              onSelected: (val) => setState(() => _selectedStatusFilter = status),
+              selectedColor: Theme.of(context).primaryColor,
+              labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildIncidentCard(DocumentSnapshot doc, Color themeColor) {
+    final data = doc.data() as Map<String, dynamic>;
+    String estado = data['estado'] ?? 'Pendiente';
+
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(10),
+        leading: data['foto_url'] != null
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                data['foto_url'],
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
+              ),
+            )
+          : CircleAvatar(backgroundColor: themeColor.withOpacity(0.1), child: Icon(Icons.report, color: themeColor)),
+        title: Row(
+          children: [
+            Expanded(child: Text(data['categoria'] ?? "General", style: const TextStyle(fontWeight: FontWeight.bold))),
+            Text("#${doc.id.substring(0,6)}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          ],
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(data['descripcion'] ?? "", maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 5),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: _getStatusColor(estado).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Text(
+                estado,
+                style: TextStyle(color: _getStatusColor(estado), fontSize: 10, fontWeight: FontWeight.bold)
+              ),
+            ),
+          ],
+        ),
+        trailing: const Icon(Icons.chevron_right, size: 20),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => IncidentDetailsScreen(data: data, docId: doc.id))),
+      ),
+    );
+  }
+
+  Color _getStatusColor(String estado) {
+    switch (estado) {
+      case 'Resuelta': return Colors.green;
+      case 'En proceso': return Colors.blue;
+      default: return Colors.orange;
+    }
   }
 }

@@ -110,15 +110,18 @@ class _ReportScreenState extends State<ReportScreen> {
 
       Position? position;
       try {
+        // En WEB, LocationAccuracy.high puede causar timeouts infinitos. Usamos medium.
+        LocationAccuracy desiredAccuracy = kIsWeb ? LocationAccuracy.medium : LocationAccuracy.high;
+
         position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-          timeLimit: const Duration(seconds: 8),
+          desiredAccuracy: desiredAccuracy,
+          timeLimit: const Duration(seconds: 10),
         );
       } catch (e) {
         debugPrint("Error al obtener posición actual, intentando última conocida: $e");
         position = await Geolocator.getLastKnownPosition();
         if (position == null) {
-          throw 'No se pudo obtener la ubicación. Asegúrate de tener el GPS activo y cobertura.';
+          throw 'No se pudo obtener la ubicación. Asegúrate de dar permisos en el navegador y tener internet.';
         }
       }
 
@@ -281,119 +284,176 @@ class _ReportScreenState extends State<ReportScreen> {
           ],
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const Text("1. Selecciona la categoría", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 15),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.5),
-              itemCount: _categorias.length,
-              itemBuilder: (context, index) {
-                bool seleccionada = _categoriaSeleccionada == _categorias[index]['nombre'];
-                return InkWell(
-                  onTap: () => setState(() => _categoriaSeleccionada = _categorias[index]['nombre']),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: seleccionada ? themeColor.withOpacity(0.2) : Colors.grey[100],
-                      border: Border.all(color: seleccionada ? themeColor : Colors.transparent, width: 2),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(_categorias[index]['icon'], color: themeColor, size: 30), Text(_categorias[index]['nombre'], style: const TextStyle(fontWeight: FontWeight.bold))]),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 25),
-            TextField(controller: _descController, maxLines: 4, decoration: InputDecoration(hintText: "Descripción...", border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)))),
-            const SizedBox(height: 25),
-            const Text("3. Evidencia visual", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 10),
-            Center(
-              child: Column(
-                children: [
-                  if (_imagenSeleccionada != null) 
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(15),
-                      child: kIsWeb 
-                        ? Image.network(_imagenSeleccionada!.path, height: 200, width: double.infinity, fit: BoxFit.cover, filterQuality: FilterQuality.medium)
-                        : Image.file(File(_imagenSeleccionada!.path), height: 200, width: double.infinity, fit: BoxFit.cover),
-                    ),
-                  const SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    onPressed: _tomarFoto,
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text("Añadir Foto"),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _currentPosition != null ? Colors.green.withOpacity(0.1) : Colors.grey[50],
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(
-                  color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.grey[300]!),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        _currentPosition != null ? Icons.location_on : Icons.location_off,
-                        color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.orange),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(30),
+            child: Column(
+              children: [
+                const Text("1. Selecciona la categoría", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(height: 20),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    int gridCount = constraints.maxWidth > 500 ? 3 : 2;
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: gridCount,
+                        crossAxisSpacing: 15,
+                        mainAxisSpacing: 15,
+                        childAspectRatio: 1.8
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _currentPosition != null
-                                ? "Ubicación detectada"
-                                : (_isLocationLoading ? "Obteniendo GPS..." : (_locationError ?? "Ubicación requerida")),
-                              style: TextStyle(
-                                color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.black87),
-                                fontWeight: FontWeight.bold,
-                              ),
+                      itemCount: _categorias.length,
+                      itemBuilder: (context, index) {
+                        bool seleccionada = _categoriaSeleccionada == _categorias[index]['nombre'];
+                        return InkWell(
+                          onTap: () => setState(() => _categoriaSeleccionada = _categorias[index]['nombre']),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: seleccionada ? themeColor.withOpacity(0.2) : Colors.grey[100],
+                              border: Border.all(color: seleccionada ? themeColor : Colors.transparent, width: 2),
+                              borderRadius: BorderRadius.circular(15),
                             ),
-                            if (_currentPosition == null && !_isLocationLoading)
-                              const Text(
-                                "Pulsa el botón para activar el GPS",
-                                style: TextStyle(fontSize: 11, color: Colors.grey),
-                              ),
-                          ],
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(_categorias[index]['icon'], color: themeColor, size: 35),
+                                const SizedBox(height: 5),
+                                Text(_categorias[index]['nombre'], style: const TextStyle(fontWeight: FontWeight.bold))
+                              ]
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }
+                ),
+                const SizedBox(height: 35),
+                const Text("2. Describe lo que sucede", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: _descController,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    hintText: "Escribe aquí los detalles de la incidencia...",
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none)
+                  )
+                ),
+                const SizedBox(height: 35),
+                const Text("3. Evidencia visual", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(height: 15),
+                Center(
+                  child: Column(
+                    children: [
+                      if (_imagenSeleccionada != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 15),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(15),
+                            child: kIsWeb
+                              ? Image.network(_imagenSeleccionada!.path, height: 300, width: double.infinity, fit: BoxFit.cover, filterQuality: FilterQuality.medium)
+                              : Image.file(File(_imagenSeleccionada!.path), height: 300, width: double.infinity, fit: BoxFit.cover),
+                          ),
+                        ),
+                      ElevatedButton.icon(
+                        onPressed: _tomarFoto,
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text("Añadir Foto"),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
-                      if (!_isLocationLoading)
-                        ElevatedButton(
-                          onPressed: _determinePosition,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _currentPosition != null ? Colors.green : Colors.orange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 35),
+                const Text("4. Ubicación exacta", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(height: 15),
+                Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: _currentPosition != null ? Colors.green.withOpacity(0.1) : Colors.grey[50],
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.grey[300]!),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _currentPosition != null ? Icons.location_on : Icons.location_off,
+                            color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.orange),
+                            size: 30,
                           ),
-                          child: Text(_currentPosition != null ? "ACTUALIZAR" : "ACTIVAR GPS"),
+                          const SizedBox(width: 15),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _currentPosition != null
+                                    ? "Ubicación detectada correctamente"
+                                    : (_isLocationLoading ? "Obteniendo GPS..." : (_locationError ?? "Ubicación requerida")),
+                                  style: TextStyle(
+                                    color: _currentPosition != null ? Colors.green : (_locationError != null ? Colors.red : Colors.black87),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                if (_currentPosition == null && !_isLocationLoading)
+                                  const Text(
+                                    "Pulsa el botón de la derecha para geolocalizar la incidencia",
+                                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          if (!_isLocationLoading)
+                            ElevatedButton(
+                              onPressed: _determinePosition,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _currentPosition != null ? Colors.green : Colors.orange,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                              ),
+                              child: Text(_currentPosition != null ? "ACTUALIZAR" : "ACTIVAR GPS"),
+                            ),
+                        ],
+                      ),
+                      if (_isLocationLoading)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 15.0),
+                          child: LinearProgressIndicator(minHeight: 3, color: Colors.orange),
                         ),
                     ],
                   ),
-                  if (_isLocationLoading)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8.0),
-                      child: LinearProgressIndicator(minHeight: 2, color: Colors.orange),
+                ),
+                const SizedBox(height: 50),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _enviarReporte,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: themeColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     ),
-                ],
-              ),
+                    child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text("ENVIAR INCIDENCIA", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))
+                  )
+                ),
+              ],
             ),
-            const SizedBox(height: 30),
-            SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _isLoading ? null : _enviarReporte, style: ElevatedButton.styleFrom(backgroundColor: themeColor), child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENVIAR", style: TextStyle(color: Colors.white)))),
-          ],
+          ),
         ),
       ),
     );

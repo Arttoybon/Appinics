@@ -42,21 +42,27 @@ class CantillanaReportApp extends StatelessWidget {
         useMaterial3: true,
       ),
       builder: (context, child) {
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Container(
-              decoration: BoxDecoration(
-                boxShadow: [
-                  if (MediaQuery.of(context).size.width > 600)
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 20,
-                      spreadRadius: 5,
-                    ),
-                ],
+        final bool isDesktop = MediaQuery.of(context).size.width > 900;
+        return Material(
+          color: isDesktop ? const Color(0xFFF5F5F7) : Colors.white,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    if (isDesktop)
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 25,
+                        spreadRadius: 5,
+                      ),
+                  ],
+                ),
+                child: child,
               ),
-              child: child,
             ),
           ),
         );
