@@ -351,7 +351,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
     DateTime? fecha = (widget.data['fecha'] != null) ? (widget.data['fecha'] as Timestamp).toDate() : null;
     String fechaStr = fecha != null ? DateFormat('dd/MM/yyyy HH:mm').format(fecha) : "S/F";
     
-    bool canChangeStatus = _isAdmin || _isTechnician;
+    bool canChangeStatus = (_isAdmin && _assignedTo != null) || (_isTechnician && _assignedTo == user?.uid);
     bool isOtro = (widget.data['categoria'] ?? "").toString().trim().toLowerCase() == "otro";
     bool canSelfAssign = _isTechnician && _assignedTo == null && (isOtro || _techSpecialty == (widget.data['categoria'] ?? "").toString().trim().toLowerCase());
     
