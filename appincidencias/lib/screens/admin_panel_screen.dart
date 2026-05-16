@@ -380,9 +380,31 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     final query = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native').collection('incidencias').orderBy('fecha', descending: true);
     return Column(
       children: [
+        // Barra de búsqueda por ID o Descripción
+        Padding(
+          padding: const EdgeInsets.all(15),
+          child: TextField(
+            controller: _incidentSearchController,
+            decoration: InputDecoration(
+              hintText: "Buscar por ID o descripción...",
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _incidentSearchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _incidentSearchController.clear();
+                      setState(() => _incidentSearchQuery = "");
+                    }
+                  )
+                : null,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))
+            ),
+            onChanged: (v) => setState(() => _incidentSearchQuery = v.toLowerCase()),
+          ),
+        ),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
           child: Row(
             children: ["Todas", "Pendiente", "En proceso", "Resuelta"].map((status) {
               bool isSelected = _selectedStatusFilter == status;
@@ -407,9 +429,21 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               
               final docs = snapshot.data!.docs.where((doc) {
                 final data = doc.data() as Map<String, dynamic>;
+
+                // Filtro por Estado
                 final statusMatch = _selectedStatusFilter == "Todas" || (data['estado'] ?? "Pendiente") == _selectedStatusFilter;
-                return statusMatch;
+
+                // Filtro por ID o Descripción
+                final q = _incidentSearchQuery.trim().toLowerCase();
+                final idMatch = doc.id.toLowerCase().contains(q);
+                final descMatch = (data['descripcion'] ?? "").toString().toLowerCase().contains(q);
+
+                return statusMatch && (idMatch || descMatch);
               }).toList();
+
+              if (docs.isEmpty) {
+                return const Center(child: Text("No se encontraron incidencias"));
+              }
 
               return ListView.builder(
                 itemCount: docs.length,
