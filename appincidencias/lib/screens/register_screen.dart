@@ -1,3 +1,4 @@
+import 'package:appincidencias/utils/validation_utils.dart'; // Añadido
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -17,11 +18,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
 
   Future<void> _registrarse() async {
+    final String dni = _dniController.text.trim().toUpperCase();
+
     if (_emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty ||
-        _dniController.text.trim().isEmpty) {
+        dni.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Por favor, rellena todos los campos (incluido el DNI)"), backgroundColor: Colors.orange)
+        const SnackBar(content: Text("Por favor, rellena todos los campos"), backgroundColor: Colors.orange)
+      );
+      return;
+    }
+
+    // VALIDACIÓN MATEMÁTICA DEL DNI
+    if (!ValidationUtils.validarDNI(dni)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⚠️ El DNI o NIE introducido no es válido o la letra es incorrecta"),
+          backgroundColor: Colors.redAccent
+        )
       );
       return;
     }

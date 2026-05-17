@@ -53,6 +53,111 @@ class _ReportScreenState extends State<ReportScreen> {
       _determinePosition();
     }
     _checkUserRole();
+    _checkShowGuide(); // Comprobar si mostrar la guía
+  }
+
+  Future<void> _checkShowGuide() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+          .collection('usuarios').doc(user.uid).get();
+
+      if (doc.exists) {
+        final data = doc.data();
+        bool guiaVista = data?['guiaVista'] ?? false;
+        if (!guiaVista) {
+          if (mounted) _showOnboardingGuide();
+        }
+      }
+    } catch (e) {
+      debugPrint("Error checking guide: $e");
+    }
+  }
+
+  void _showOnboardingGuide() {
+    final List<Map<String, String>> guideSteps = [
+      {
+        'titulo': '¡Bienvenido a Cantillana Report!',
+        'mensaje': 'Esta app te permite avisar al ayuntamiento de cualquier desperfecto en el municipio de forma rápida y directa.',
+        'icono': '👋'
+      },
+      {
+        'titulo': 'Tus Incidencias (Icono Lista)',
+        'mensaje': 'Pulsa el icono de la lista arriba a la izquierda para ver el historial y estado de todos tus reportes enviados.',
+        'icono': '📋'
+      },
+      {
+        'titulo': 'Notificaciones (Campana)',
+        'mensaje': 'Aquí verás un punto rojo si un técnico ha comentado tu incidencia o si ya ha sido resuelta.',
+        'icono': '🔔'
+      },
+      {
+        'titulo': 'Tu Perfil (Usuario)',
+        'mensaje': 'Desde aquí puedes consultar tu correo y DNI, o cerrar la sesión de forma segura.',
+        'icono': '👤'
+      },
+      {
+        'titulo': '1. Selecciona la Categoría',
+        'mensaje': 'Elige el tipo de problema pulsando en los iconos. Si no ves uno que encaje, usa "Otro".',
+        'icono': '💡'
+      },
+      {
+        'titulo': '2. Evidencia (Foto)',
+        'mensaje': 'Pulsa "Añadir Foto" para subir una imagen clara. ¡Es de gran ayuda para nuestros técnicos!',
+        'icono': '📸'
+      },
+      {
+        'titulo': '3. ¡Activa el GPS!',
+        'mensaje': 'Es obligatorio pulsar "ACTIVAR GPS". Así sabremos el lugar exacto sin que tengas que escribir la dirección.',
+        'icono': '📍'
+      },
+      {
+        'titulo': '4. Envío Final',
+        'mensaje': 'Cuando todo esté listo, pulsa "ENVIAR INCIDENCIA". ¡Gracias por colaborar con tu municipio!',
+        'icono': '🚀'
+      },
+    ];
+
+    _showNextGuideStep(0, guideSteps);
+  }
+
+  void _showNextGuideStep(int index, List<Map<String, String>> steps) {
+    if (index >= steps.length) {
+      // Marcar guía como vista en Firestore
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('usuarios').doc(user.uid).update({'guiaVista': true});
+      }
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Column(
+          children: [
+            Text(steps[index]['icono']!, style: const TextStyle(fontSize: 40)),
+            const SizedBox(height: 10),
+            Text(steps[index]['titulo']!, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(steps[index]['mensaje']!, textAlign: TextAlign.center),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showNextGuideStep(index + 1, steps);
+            },
+            child: Text(index == steps.length - 1 ? "¡EMPEZAR!" : "SIGUIENTE", style: const TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _checkUserRole() async {

@@ -1,6 +1,7 @@
 import 'package:appincidencias/screens/incident_details_screen.dart';
 import 'package:appincidencias/screens/my_incidents_screen.dart';
 import 'package:appincidencias/screens/report_screen.dart';
+import 'package:appincidencias/screens/notifications_screen.dart'; // Añadido
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -23,6 +24,92 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   final TextEditingController _incidentSearchController = TextEditingController();
   String _incidentSearchQuery = "";
   String _selectedStatusFilter = "Todas";
+
+  @override
+  void initState() {
+    super.initState();
+    _checkShowGuide();
+  }
+
+  Future<void> _checkShowGuide() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    try {
+      final doc = await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+          .collection('usuarios').doc(user.uid).get();
+      if (doc.exists && !(doc.data()?['guiaAdminVista'] ?? false)) {
+        if (mounted) _showAdminGuide();
+      }
+    } catch (e) {
+      debugPrint("Error checking admin guide: $e");
+    }
+  }
+
+  void _showAdminGuide() {
+    final List<Map<String, String>> steps = [
+      {
+        'titulo': 'Panel de Administración',
+        'mensaje': 'Desde aquí tienes el control total de la plataforma municipal en versión Dashboard.',
+        'icono': '🏛️'
+      },
+      {
+        'titulo': 'Gestión de Roles',
+        'mensaje': 'En la pestaña "Roles" puedes convertir usuarios en técnicos y asignarles sus áreas de trabajo.',
+        'icono': '👥'
+      },
+      {
+        'titulo': 'Moderación Directa',
+        'mensaje': 'Al pulsar un usuario verás botones para Bloquear o Eliminar permanentemente (incluyendo sus reportes).',
+        'icono': '🛡️'
+      },
+      {
+        'titulo': 'Supervisión Global',
+        'mensaje': 'En la pestaña "Incidencias" puedes buscar por ID, editar descripciones o corregir ubicaciones GPS.',
+        'icono': '📝'
+      },
+      {
+        'titulo': 'Accesos Rápidos',
+        'mensaje': 'Usa el icono "+" para reportar tú mismo, la Campana para avisos o el botón de Salida para cerrar sesión.',
+        'icono': '⚡'
+      },
+    ];
+    _showNextGuideStep(0, steps);
+  }
+
+  void _showNextGuideStep(int index, List<Map<String, String>> steps) {
+    if (index >= steps.length) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('usuarios').doc(user.uid).update({'guiaAdminVista': true});
+      }
+      return;
+    }
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Column(
+          children: [
+            Text(steps[index]['icono']!, style: const TextStyle(fontSize: 40)),
+            const SizedBox(height: 10),
+            Text(steps[index]['titulo']!, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(steps[index]['mensaje']!, textAlign: TextAlign.center),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showNextGuideStep(index + 1, steps);
+            },
+            child: Text(index == steps.length - 1 ? "ENTENDIDO" : "SIGUIENTE"),
+          ),
+        ],
+      ),
+    );
+  }
 
   // Generar URL de avatar dinámico basado en el email
   String _getAvatarUrl(String email) {
@@ -229,6 +316,41 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               icon: const Icon(Icons.list_alt),
               tooltip: 'Mis Incidencias',
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyIncidentsScreen())),
+            ),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+                  .collection('notificaciones')
+                  .where('uid_usuario', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                  .where('leida', isEqualTo: false)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                int unreadCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications, color: Colors.white),
+                      tooltip: 'Notificaciones',
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          child: Text(
+                            unreadCount > 9 ? '9+' : '$unreadCount',
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
             IconButton(
               icon: const Icon(Icons.logout),

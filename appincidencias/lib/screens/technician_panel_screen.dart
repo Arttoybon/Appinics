@@ -27,6 +27,104 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
   bool _onlyShowAssigned = true;
 
   @override
+  void initState() {
+    super.initState();
+    _checkShowGuide();
+  }
+
+  Future<void> _checkShowGuide() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+          .collection('usuarios').doc(user.uid).get();
+
+      if (doc.exists) {
+        final data = doc.data();
+        bool guiaTecnicoVista = data?['guiaTecnicoVista'] ?? false;
+        if (!guiaTecnicoVista) {
+          if (mounted) _showTechnicianGuide();
+        }
+      }
+    } catch (e) {
+      debugPrint("Error checking tech guide: $e");
+    }
+  }
+
+  void _showTechnicianGuide() {
+    final List<Map<String, String>> steps = [
+      {
+        'titulo': '¡Bienvenido Técnico!',
+        'mensaje': 'Este es tu panel central de trabajo. Aquí gestionarás las incidencias de tu especialidad.',
+        'icono': '🛠️'
+      },
+      {
+        'titulo': 'Crear Reporte (+)',
+        'mensaje': 'Si detectas un problema mientras trabajas, pulsa el icono "+" arriba a la derecha para crear un nuevo reporte tú mismo.',
+        'icono': '➕'
+      },
+      {
+        'titulo': 'Filtros de Eficiencia',
+        'mensaje': 'Por defecto verás solo las incidencias "Pendientes" que tienes "Asignadas a ti". Pulsa los botones para ver el resto.',
+        'icono': '📍'
+      },
+      {
+        'titulo': 'Búsqueda Maestro',
+        'mensaje': 'Usa el buscador para localizar un ID o descripción. Al escribir, se ignorarán los otros filtros automáticamente.',
+        'icono': '🔍'
+      },
+      {
+        'titulo': 'Gestión de Estados',
+        'mensaje': 'Al pulsar en una incidencia, recuerda cambiar el estado a "En proceso" o "Resuelta" para notificar al ciudadano.',
+        'icono': '✅'
+      },
+      {
+        'titulo': 'Perfil y Salida',
+        'mensaje': 'Usa los iconos de usuario para ver tus datos o el de salida para cerrar tu sesión técnica.',
+        'icono': '👤'
+      },
+    ];
+    _showNextGuideStep(0, steps);
+  }
+
+  void _showNextGuideStep(int index, List<Map<String, String>> steps) {
+    if (index >= steps.length) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
+            .collection('usuarios').doc(user.uid).update({'guiaTecnicoVista': true});
+      }
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Column(
+          children: [
+            Text(steps[index]['icono']!, style: const TextStyle(fontSize: 40)),
+            const SizedBox(height: 10),
+            Text(steps[index]['titulo']!, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(steps[index]['mensaje']!, textAlign: TextAlign.center),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showNextGuideStep(index + 1, steps);
+            },
+            child: Text(index == steps.length - 1 ? "ENTENDIDO" : "SIGUIENTE"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).primaryColor;
     // Consulta para obtener incidencias (el filtrado por especialidad se hará en el StreamBuilder para permitir "Otro")

@@ -1,4 +1,5 @@
 import 'package:appincidencias/screens/incident_details_screen.dart';
+import 'package:appincidencias/utils/validation_utils.dart'; // Añadido
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -62,8 +63,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Future<void> _saveProfile() async {
     // VALIDACIÓN: No permitir campos vacíos y validar teléfono numérico
     final String phone = _phoneController.text.trim();
+    final String dni = _dniController.text.trim().toUpperCase();
+
     if (_nameController.text.trim().isEmpty ||
-        _dniController.text.trim().isEmpty ||
+        dni.isEmpty ||
         phone.isEmpty) {
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -75,11 +78,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return;
     }
 
-    // Comprobar que el teléfono sea numérico
-    if (RegExp(r'^[0-9]+$').hasMatch(phone) == false) {
+    // VALIDACIÓN MATEMÁTICA DEL DNI
+    if (!ValidationUtils.validarDNI(dni)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("⚠️ El teléfono debe contener solo números"),
+          content: Text("⚠️ El DNI o NIE introducido no es válido o la letra es incorrecta"),
+          backgroundColor: Colors.redAccent
+        )
+      );
+      return;
+    }
+
+    // Comprobar formato de teléfono (España: 9 dígitos empezando por 6, 7, 8 o 9)
+    if (!ValidationUtils.validarTelefono(phone)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⚠️ El teléfono debe tener 9 dígitos y empezar por 6, 7, 8 o 9"),
           backgroundColor: Colors.redAccent,
         ),
       );

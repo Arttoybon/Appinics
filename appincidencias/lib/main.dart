@@ -2,13 +2,15 @@ import 'package:appincidencias/screens/dni_required_screen.dart';
 import 'package:appincidencias/screens/login_screen.dart';
 import 'package:appincidencias/screens/report_screen.dart';
 import 'package:appincidencias/screens/technician_panel_screen.dart';
-import 'package:appincidencias/screens/admin_panel_screen.dart'; // Añadido
+import 'package:appincidencias/screens/admin_panel_screen.dart';
+import 'package:flutter/foundation.dart'; // Añadido para kIsWeb
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; 
-import 'package:google_sign_in/google_sign_in.dart'; // Añadido
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:appincidencias/firebase_options.dart';
+import 'package:appincidencias/utils/web_reload/web_reload.dart'; // Añadido para reloadApp
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -111,7 +113,7 @@ class AuthWrapper extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        "Hemos enviado un enlace a ${user.email}. Por favor, confírmalo para continuar.",
+                        "Hemos enviado un enlace a ${user.email}. Por favor, confírmalo para continuar. (Si no lo ves, revisa tu bandeja de SPAM)",
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.grey),
                       ),
@@ -119,6 +121,16 @@ class AuthWrapper extends StatelessWidget {
                       ElevatedButton(
                         onPressed: () async {
                           await user.reload(); // Recarga estado del usuario
+                          // Forzar recarga de la app para que el StreamBuilder detecte el cambio
+                          if (kIsWeb) {
+                            reloadApp();
+                          } else {
+                            // En móvil podemos simplemente navegar a la misma pantalla para disparar rebuild
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (context) => const AuthWrapper()),
+                              (route) => false
+                            );
+                          }
                         },
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                         child: const Text("YA HE CONFIRMADO", style: TextStyle(color: Colors.white)),
@@ -163,6 +175,7 @@ class AuthWrapper extends StatelessWidget {
                 'email': user.email,
                 'uid': user.uid,
                 'rol': 'user',
+                'guiaVista': false, // Añadido para la guía
                 'fecha_registro': FieldValue.serverTimestamp(),
               }, SetOptions(merge: true));
             }
