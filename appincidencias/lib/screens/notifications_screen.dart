@@ -103,6 +103,7 @@ class NotificationsScreen extends StatelessWidget {
 
   Future<void> _handleTap(BuildContext context, String notifId, String? incidentId) async {
     // Marcar como leída
+    // Marcar como leida
     await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
         .collection('notificaciones').doc(notifId).update({'leida': true});
 
