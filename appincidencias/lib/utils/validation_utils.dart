@@ -1,15 +1,15 @@
 class ValidationUtils {
-  /// Valida un DNI o NIE español (Regex + Cálculo de letra matemática)
+  /// Valida un DNI o NIE espanol (Regex + Calculo de letra matematica)
   static bool validarDNI(String dni) {
     dni = dni.toUpperCase().trim();
 
     // 1. Validar formato con Regex:
-    // Comienza por un número o X, Y, Z, seguido de 7 números y termina en una letra A-Z
+    // Comienza por un numero o X, Y, Z, seguido de 7 numeros y termina en una letra A-Z
     if (!RegExp(r'^[XYZ0-9][0-9]{7}[A-Z]$').hasMatch(dni)) {
       return false;
     }
 
-    // 2. Cálculo matemático de la letra
+    // 2. Calculo matematico de la letra
     String numeroStr = dni.substring(0, 8);
     String letraProporcionada = dni.substring(8);
 
@@ -30,7 +30,7 @@ class ValidationUtils {
     }
   }
 
-  /// Valida un número de teléfono español (9 dígitos empezando por 6, 7, 8 o 9)
+  /// Valida un numero de telefono espanol (9 digitos empezando por 6, 7, 8 o 9)
   static bool validarTelefono(String telefono) {
     return RegExp(r'^[6789][0-9]{8}$').hasMatch(telefono.trim());
   }

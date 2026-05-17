@@ -13,7 +13,7 @@ class GoogleAuthService {
   // 2. Escuchar cambios de usuario
   Stream<GoogleSignInAccount?> get userStream => _googleSignIn.onCurrentUserChanged;
 
-  // 3. Método para Loguearse
+  // 3. Metodo para Loguearse
   Future<void> signIn() async {
     try {
       await _googleSignIn.signIn();
@@ -22,7 +22,7 @@ class GoogleAuthService {
     }
   }
 
-  // 4. Método para Cerrar Sesión
+  // 4. Metodo para Cerrar Sesion
   Future<void> signOut() async {
     try {
       await _googleSignIn.disconnect(); // Desconecta la cuenta y borra tokens de Google

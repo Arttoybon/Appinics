@@ -17,8 +17,8 @@ Widget getGoogleSignInButton({
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Usamos una imagen de red más fiable (icono oficial de Google)
-          // Si este falla, el Row no explotará porque está dentro de un Row con mainAxisAlignment center
+          // Usamos una imagen de red mas fiable (icono oficial de Google)
+          // Si este falla, el Row no explotara porque esta dentro de un Row con mainAxisAlignment center
           Image.network(
             'https://auth.services.adobe.com/img/google_logo.svg',
             height: 24,

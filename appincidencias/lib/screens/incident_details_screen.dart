@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; 
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-// Eliminadas librerías de mapas para permitir compilación ante error de cache
 
 class IncidentDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -89,7 +88,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
         if (data['rol'] == 'tecnico') {
           String? especialidad = data['especialidad']?.toString().trim().toLowerCase();
 
-          // Si la categoría es "Otro", cualquier técnico sirve.
+          // Si la categoria es "Otro", cualquier tecnico sirve.
           // Si no, debe coincidir la especialidad.
           if (categoriaIncidencia == "otro" || especialidad == categoriaIncidencia) {
             techList.add({'uid': doc.id, 'email': data['email'] ?? "Sin email"});
@@ -121,12 +120,10 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
         'fecha': FieldValue.serverTimestamp(),
       });
 
-      // NOTIFICACIÓN
       final ownerUid = widget.data['uid_usuario'];
       final assignedUid = widget.data['asignado_a_uid'] ?? _assignedTo;
 
       if (user.uid == ownerUid) {
-        // EL CIUDADANO RESPONDE -> Notificar al técnico asignado si existe
         if (assignedUid != null) {
           await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
               .collection('notificaciones').add({
@@ -140,7 +137,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
           });
         }
       } else {
-        // UN OFICIAL COMENTA -> Notificar al dueño de la incidencia
         if (ownerUid != null && ownerUid != user.uid) {
           await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
               .collection('notificaciones').add({
@@ -172,7 +168,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
             'tecnico_email': user.email,
           });
 
-      // NOTIFICACIÓN PARA EL DUEÑO DE LA INCIDENCIA
       final ownerUid = widget.data['uid_usuario'];
       if (ownerUid != null) {
         await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
@@ -187,7 +182,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
         });
       }
 
-      // NOTIFICACIÓN PARA EL TÉCNICO (Mismo usuario en este caso)
       await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
           .collection('notificaciones').add({
         'uid_usuario': user.uid,
@@ -215,7 +209,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
             'tecnico_email': tech['email'],
           });
 
-      // NOTIFICACIÓN PARA EL TÉCNICO ASIGNADO
       await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
           .collection('notificaciones').add({
         'uid_usuario': techUid,
@@ -227,7 +220,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
         'tipo': 'asignacion'
       });
 
-      // NOTIFICACIÓN PARA EL DUEÑO DE LA INCIDENCIA
       final ownerUid = widget.data['uid_usuario'];
       if (ownerUid != null) {
         await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
@@ -254,7 +246,6 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
       await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
           .collection('incidencias').doc(widget.docId).update({'estado': newStatus});
 
-      // NOTIFICACIÓN PARA EL DUEÑO DE LA INCIDENCIA
       final ownerUid = widget.data['uid_usuario'];
       if (ownerUid != null) {
         await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
@@ -491,10 +482,9 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                   ] else ...[
                     Text("ESTADO ACTUAL: $_currentStatus", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
-                  
                   const Divider(height: 30),
-                  
-                  // Información General
+
+                  // Informacion general
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -555,7 +545,7 @@ class _IncidentDetailsScreenState extends State<IncidentDetailsScreen> {
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) return const SizedBox();
 
-                      // Detectar si hay algún comentario de un oficial (Alguien que NO es el dueño)
+                      // Detectar si hay algun comentario de un oficial (Alguien que NO es el dueno)
                       bool hasOfficialResponse = snapshot.data!.docs.any((doc) {
                         final d = doc.data() as Map<String, dynamic>;
                         return d['autor_uid'] != widget.data['uid_usuario'];

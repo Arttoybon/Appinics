@@ -127,7 +127,6 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).primaryColor;
-    // Consulta para obtener incidencias (el filtrado por especialidad se hará en el StreamBuilder para permitir "Otro")
     final query = FirebaseFirestore.instanceFor(
       app: Firebase.app(), 
       databaseId: 'cantillana-native'
@@ -231,7 +230,7 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
 
           return Column(
             children: [
-              // Barra de búsqueda y Filtros en una fila si es Web
+              // Barra de busqueda y Filtros en una fila si es Web
               Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: isWide
@@ -265,7 +264,7 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
                     final queryText = _searchQuery.trim().toLowerCase();
                     final bool isSearching = queryText.isNotEmpty;
 
-                    // Filtrado por especialidad + Categoría "Otro" + Búsqueda + Estado + Asignación
+                    // Filtrado por especialidad + Categoria "Otro" + Busqueda + Estado + Asignacion
                     final docs = snapshot.data!.docs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
                       final categoria = (data['categoria'] ?? "").toString().trim();
@@ -275,7 +274,7 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
                       if (!esDeSuInteres) return false;
 
                       if (isSearching) {
-                        // Modo Búsqueda: Ignoramos botones de estado y asignación
+                        // Modo Busqueda: Ignoramos botones de estado y asignacion
                         final docId = doc.id.toLowerCase();
                         final descripcion = (data['descripcion'] ?? "").toString().toLowerCase();
                         return docId.contains(queryText) || descripcion.contains(queryText);
@@ -295,7 +294,7 @@ class _TechnicianPanelScreenState extends State<TechnicianPanelScreen> {
                       return const Center(child: Text("No se encontraron coincidencias"));
                     }
 
-                    // GRID para WEB, LISTA para MÓVIL
+                    // GRID para WEB, LISTA para MOVIL
                     return isWide
                       ? GridView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 20),

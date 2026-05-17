@@ -22,6 +22,7 @@ class NotificationsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Notificaciones", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.orange,
+        backgroundColor: themeColor,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
@@ -60,6 +61,7 @@ class NotificationsScreen extends StatelessWidget {
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 color: leida ? Colors.white : Colors.orange[50],
+                color: leida ? Colors.white : themeColor.withOpacity(0.05),
                 elevation: leida ? 1 : 3,
                 child: ListTile(
                   leading: Icon(
@@ -69,6 +71,7 @@ class NotificationsScreen extends StatelessWidget {
                             ? Icons.comment_outlined
                             : Icons.assignment_ind_outlined,
                     color: Colors.orange,
+                    color: themeColor,
                   ),
                   title: Text(
                     data['titulo'] ?? "Notificación",

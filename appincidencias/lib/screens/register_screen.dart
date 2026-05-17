@@ -1,4 +1,4 @@
-import 'package:appincidencias/utils/validation_utils.dart'; // Añadido
+import 'package:appincidencias/utils/validation_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // VALIDACIÓN MATEMÁTICA DEL DNI
+    // VALIDACION MATEMATICA DEL DNI
     if (!ValidationUtils.validarDNI(dni)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -66,7 +66,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         });
         debugPrint("FIRESTORE ACTUALIZADO");
 
-        // ENVIAR CORREO DE VERIFICACIÓN
+        // ENVIAR CORREO DE VERIFICACION
         try {
           debugPrint("ENVIANDO EMAIL DE VERIFICACIÓN...");
           await user.sendEmailVerification();
@@ -80,7 +80,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() => _isLoading = false);
         debugPrint("MOSTRANDO DIÁLOGO DE ÉXITO");
 
-        // Usamos Future.delayed para asegurar que el teclado se cierre y el contexto esté listo
+        // Usamos Future.delayed para asegurar que el teclado se cierre y el contexto este listo
         Future.delayed(Duration.zero, () {
           if (!mounted) return;
           showDialog(
@@ -92,7 +92,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop(); // Cierra diálogo
+                    Navigator.of(context).pop(); // Cierra dialogo
                     Navigator.of(context).pop(); // Vuelve al login
                   },
                   child: const Text("CERRAR Y VOLVER AL LOGIN"),

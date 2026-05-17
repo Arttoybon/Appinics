@@ -1,5 +1,5 @@
 import 'package:appincidencias/screens/incident_details_screen.dart';
-import 'package:appincidencias/utils/validation_utils.dart'; // Añadido
+import 'package:appincidencias/utils/validation_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -61,7 +61,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    // VALIDACIÓN: No permitir campos vacíos y validar teléfono numérico
+    // VALIDACION: No permitir campos vacios y validar telefono numerico
     final String phone = _phoneController.text.trim();
     final String dni = _dniController.text.trim().toUpperCase();
 
@@ -71,29 +71,29 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("⚠️ Por favor, rellena todos los campos (Nombre, DNI y Teléfono)"),
+          content: Text("Por favor, rellena todos los campos (Nombre, DNI y Teléfono)"),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    // VALIDACIÓN MATEMÁTICA DEL DNI
+    // VALIDACION MATEMATICA DEL DNI
     if (!ValidationUtils.validarDNI(dni)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("⚠️ El DNI o NIE introducido no es válido o la letra es incorrecta"),
+          content: Text("El DNI o NIE introducido no es válido o la letra es incorrecta"),
           backgroundColor: Colors.redAccent
         )
       );
       return;
     }
 
-    // Comprobar formato de teléfono (España: 9 dígitos empezando por 6, 7, 8 o 9)
+    // Comprobar formato de telefono (Espana: 9 digitos empezando por 6, 7, 8 o 9)
     if (!ValidationUtils.validarTelefono(phone)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("⚠️ El teléfono debe tener 9 dígitos y empezar por 6, 7, 8 o 9"),
+          content: Text("El teléfono debe tener 9 dígitos y empezar por 6, 7, 8 o 9"),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -121,7 +121,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _isSaving = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Perfil actualizado"), backgroundColor: Colors.green),
+          const SnackBar(content: Text("Perfil actualizado"), backgroundColor: Colors.green),
         );
       }
     } catch (e) {

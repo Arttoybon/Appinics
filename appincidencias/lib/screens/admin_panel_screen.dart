@@ -1,7 +1,7 @@
 import 'package:appincidencias/screens/incident_details_screen.dart';
 import 'package:appincidencias/screens/my_incidents_screen.dart';
 import 'package:appincidencias/screens/report_screen.dart';
-import 'package:appincidencias/screens/notifications_screen.dart'; // Añadido
+import 'package:appincidencias/screens/notifications_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -111,7 +111,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     );
   }
 
-  // Generar URL de avatar dinámico basado en el email
+  // Generar URL de avatar dinamico basado en el email
   String _getAvatarUrl(String email) {
     final String name = email.split('@')[0];
     return "https://ui-avatars.com/api/?name=$name&background=random&color=fff&size=128";
@@ -471,7 +471,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                         },
                       );
                     } else {
-                      // VISTA MÓVIL: Lista normal
+                      // VISTA MOVIL: Lista normal
                       return ListView(
                         children: [
                           if (missingEmails.isNotEmpty && _searchQuery.isEmpty)
@@ -561,7 +561,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
         return Column(
           children: [
-            // Barra de búsqueda y Filtros en una sola fila si es Web
+            // Barra de busqueda y Filtros en una sola fila si es Web
             Padding(
               padding: const EdgeInsets.all(20),
               child: isWide
@@ -606,7 +606,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                     return const Center(child: Text("No se encontraron incidencias"));
                   }
 
-                  // GRID para WEB, LISTA para MÓVIL
+                  // GRID para WEB, LISTA para MOVIL
                   return isWide
                     ? GridView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 20),

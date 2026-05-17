@@ -1,4 +1,4 @@
 void performReload() {
-  // En móvil no hacemos nada o podríamos reiniciar la navegación,
+  // En movil no hacemos nada o podriamos reiniciar la navegacion,
   // pero el AuthWrapper ya se encarga.
 }

@@ -3,14 +3,14 @@ import 'package:appincidencias/screens/login_screen.dart';
 import 'package:appincidencias/screens/report_screen.dart';
 import 'package:appincidencias/screens/technician_panel_screen.dart';
 import 'package:appincidencias/screens/admin_panel_screen.dart';
-import 'package:flutter/foundation.dart'; // Añadido para kIsWeb
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:appincidencias/firebase_options.dart';
-import 'package:appincidencias/utils/web_reload/web_reload.dart'; // Añadido para reloadApp
+import 'package:appincidencias/utils/web_reload/web_reload.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +19,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // CONFIGURACIÓN PARA LA NUEVA BASE DE DATOS EN MODO NATIVO
+  // CONFIGURACION PARA LA NUEVA BASE DE DATOS EN MODO NATIVO
   FirebaseFirestore.instanceFor(
     app: Firebase.app(),
     databaseId: 'cantillana-native',
@@ -90,7 +90,7 @@ class AuthWrapper extends StatelessWidget {
 
         final user = snapshot.data;
         if (user != null) {
-          // COMPROBAR VERIFICACIÓN DE EMAIL (Excepto cuentas de prueba)
+          // Comprobar verificacion de email (Excepto cuentas de prueba)
           final List<String> bypassEmails = [
             'ciudadano1@gmail.com',
             'tecnico@gmail.com',
@@ -120,12 +120,10 @@ class AuthWrapper extends StatelessWidget {
                       const SizedBox(height: 30),
                       ElevatedButton(
                         onPressed: () async {
-                          await user.reload(); // Recarga estado del usuario
-                          // Forzar recarga de la app para que el StreamBuilder detecte el cambio
+                          await user.reload();
                           if (kIsWeb) {
                             reloadApp();
                           } else {
-                            // En móvil podemos simplemente navegar a la misma pantalla para disparar rebuild
                             Navigator.of(context).pushAndRemoveUntil(
                               MaterialPageRoute(builder: (context) => const AuthWrapper()),
                               (route) => false
@@ -162,7 +160,7 @@ class AuthWrapper extends StatelessWidget {
             );
           }
 
-          // ASEGURAR QUE EL USUARIO EXISTE EN FIRESTORE (Especialmente para Google Login)
+          // Asegurar que el usuario existe en Firestore (Especialmente para Google Login)
           FirebaseFirestore.instanceFor(
             app: Firebase.app(),
             databaseId: 'cantillana-native',
@@ -175,13 +173,13 @@ class AuthWrapper extends StatelessWidget {
                 'email': user.email,
                 'uid': user.uid,
                 'rol': 'user',
-                'guiaVista': false, // Añadido para la guía
+                'guiaVista': false,
                 'fecha_registro': FieldValue.serverTimestamp(),
               }, SetOptions(merge: true));
             }
           });
 
-          // Si hay usuario y está verificado, comprobamos si tiene DNI en Firestore
+          // Si hay usuario y esta verificado, comprobamos si tiene DNI en Firestore
           return StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instanceFor(
               app: Firebase.app(),
@@ -241,7 +239,7 @@ class AuthWrapper extends StatelessWidget {
                 if (dni != null && dni.isNotEmpty) {
                   final String? especialidad = userData?['especialidad'];
 
-                  // Definir color según rol
+                  // Definir color segun rol
                   Color primaryColor = Colors.orange;
                   if (rol == 'admin') {
                     primaryColor = Colors.green;

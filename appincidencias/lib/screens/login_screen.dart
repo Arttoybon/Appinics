@@ -1,8 +1,8 @@
 import 'package:appincidencias/screens/register_screen.dart';
 import 'package:appincidencias/screens/report_screen.dart';
 import 'package:appincidencias/utils/google_sign_in_handler.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Añadido
-import 'package:firebase_core/firebase_core.dart'; // Añadido
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final user = credential.user;
       if (user != null && !user.emailVerified) {
-        // El correo no está verificado (Excepto cuentas de prueba)
+        // El correo no esta verificado (Excepto cuentas de prueba)
         final List<String> bypassEmails = [
           'ciudadano1@gmail.com',
           'tecnico@gmail.com',

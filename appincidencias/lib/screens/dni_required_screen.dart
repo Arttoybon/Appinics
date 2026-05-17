@@ -1,4 +1,4 @@
-import 'package:appincidencias/utils/validation_utils.dart'; // Añadido
+import 'package:appincidencias/utils/validation_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -27,7 +27,7 @@ class _DniRequiredScreenState extends State<DniRequiredScreen> {
       return;
     }
 
-    // VALIDACIÓN MATEMÁTICA DEL DNI
+    // VALIDACION MATEMATICA DEL DNI
     if (!ValidationUtils.validarDNI(dni)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

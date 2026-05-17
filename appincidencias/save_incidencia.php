@@ -1,7 +1,7 @@
 <?php
 // save_incidencia.php
 
-// 1. Configuración de Cabeceras (CORS) para permitir peticiones desde Flutter Web y Móvil
+// 1. Configuracion de Cabeceras (CORS) para permitir peticiones desde Flutter Web y Movil
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
@@ -13,10 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// 2. Configuración de la Base de Datos
+// 2. Configuracion de la Base de Datos
 $host = "localhost";
 $db_name = "alumno24_db_cantillana_report";
-$username = "admin_rosa"; // He quitado el @localhost que suele sobrar aquí
+$username = "admin_rosa"; // He quitado el @localhost que suele sobrar aqui
 $password = "o24.fpcantillana";
 
 try {
@@ -27,7 +27,7 @@ try {
     exit();
 }
 
-// 3. Recepción de Datos
+// 3. Recepcion de Datos
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Obtener campos de texto

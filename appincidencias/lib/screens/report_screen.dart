@@ -53,7 +53,7 @@ class _ReportScreenState extends State<ReportScreen> {
       _determinePosition();
     }
     _checkUserRole();
-    _checkShowGuide(); // Comprobar si mostrar la guía
+    _checkShowGuide(); // Comprobar si mostrar la guia
   }
 
   Future<void> _checkShowGuide() async {
@@ -125,7 +125,7 @@ class _ReportScreenState extends State<ReportScreen> {
 
   void _showNextGuideStep(int index, List<Map<String, String>> steps) {
     if (index >= steps.length) {
-      // Marcar guía como vista en Firestore
+      // Marcar guia como vista en Firestore
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
@@ -247,7 +247,7 @@ class _ReportScreenState extends State<ReportScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("📍 $errorMsg"), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text(errorMsg), backgroundColor: Colors.redAccent),
         );
       }
     }
@@ -271,7 +271,7 @@ class _ReportScreenState extends State<ReportScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("⚠️ Por favor, completa todos los campos (Categoría, Descripción, Foto y Ubicación)"),
+          content: Text("Por favor, completa todos los campos (Categoría, Descripción, Foto y Ubicación)"),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -289,7 +289,7 @@ class _ReportScreenState extends State<ReportScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
     if (exito) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Incidencia enviada"), backgroundColor: Colors.green));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Incidencia enviada"), backgroundColor: Colors.green));
       setState(() { _categoriaSeleccionada = null; _descController.clear(); _imagenSeleccionada = null; });
     }
   }
