@@ -10,8 +10,9 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const Scaffold(body: Center(child: Text("Inicia sesión para ver notificaciones")));
+    if (user == null) return const Scaffold(body: Center(child: Text("Inicia sesion para ver notificaciones")));
 
     final query = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
         .collection('notificaciones')
@@ -21,13 +22,12 @@ class NotificationsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Notificaciones", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.orange,
         backgroundColor: themeColor,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             icon: const Icon(Icons.done_all),
-            tooltip: "Marcar todas como leídas",
+            tooltip: "Marcar todas como leidas",
             onPressed: () => _markAllAsRead(user.uid),
           )
         ],
@@ -60,7 +60,6 @@ class NotificationsScreen extends StatelessWidget {
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                color: leida ? Colors.white : Colors.orange[50],
                 color: leida ? Colors.white : themeColor.withOpacity(0.05),
                 elevation: leida ? 1 : 3,
                 child: ListTile(
@@ -70,11 +69,10 @@ class NotificationsScreen extends StatelessWidget {
                         : data['tipo'] == 'comentario'
                             ? Icons.comment_outlined
                             : Icons.assignment_ind_outlined,
-                    color: Colors.orange,
                     color: themeColor,
                   ),
                   title: Text(
-                    data['titulo'] ?? "Notificación",
+                    data['titulo'] ?? "Notificacion",
                     style: TextStyle(fontWeight: leida ? FontWeight.normal : FontWeight.bold),
                   ),
                   subtitle: Column(
@@ -102,7 +100,6 @@ class NotificationsScreen extends StatelessWidget {
   }
 
   Future<void> _handleTap(BuildContext context, String notifId, String? incidentId) async {
-    // Marcar como leída
     // Marcar como leida
     await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'cantillana-native')
         .collection('notificaciones').doc(notifId).update({'leida': true});
