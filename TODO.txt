@@ -1,6 +1,6 @@
 Modificar logo e icono de la app
 Nuevo nombre de la app: tu voz cuenta
-Modificar GitHub
+Modificar GitHub readme
 ¿Añadir mensajeria?
 
 
