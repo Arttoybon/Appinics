@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 
+/// ApiService: Clase encargada de la comunicación con servicios externos.
+/// Gestiona la subida de imágenes a Cloudinary y el guardado de incidencias en Firestore.
 class ApiService {
   // Apuntamos a la nueva base de datos MODO NATIVO
   final FirebaseFirestore _firestore = FirebaseFirestore.instanceFor(
@@ -19,6 +21,9 @@ class ApiService {
   final String _cloudinaryUrl = "https://api.cloudinary.com/v1_1/dftjjcrtv/image/upload";
   final String _uploadPreset = "incidencias_preset"; 
 
+  /// Envía un reporte de incidencia completo.
+  /// 1. Sube la imagen a Cloudinary (si existe).
+  /// 2. Guarda los datos técnicos (categoría, ubicación, descripción) en Firestore.
   Future<bool> enviarIncidenciaCompleta({
     required String categoria,
     required String descripcion,

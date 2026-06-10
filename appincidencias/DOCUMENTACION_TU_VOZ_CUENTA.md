@@ -1,7 +1,7 @@
-# 📚 DOCUMENTACIÓN MAESTRA: CANTILLANA REPORT v2.0
+# 📚 DOCUMENTACIÓN MAESTRA: TU VOZ CUENTA v2.0
 
 ## 📝 1. RESUMEN DEL PROYECTO
-**Cantillana Report** es una plataforma tecnológica de vanguardia diseñada para la gestión integral de incidencias en la vía pública. La versión 2.0 ha sido optimizada para ofrecer un rendimiento superior en entornos web y móviles, garantizando la seguridad mediante la validación de identidad (DNI) y la eficiencia operativa mediante paneles especializados por roles.
+**Tu Voz Cuenta** es una plataforma tecnológica de vanguardia diseñada para la gestión integral de incidencias en la vía pública. La versión 2.0 ha sido optimizada para ofrecer un rendimiento superior en entornos web y móviles, garantizando la seguridad mediante la validación de identidad (DNI) y la eficiencia operativa mediante paneles especializados por roles.
 
 ---
 

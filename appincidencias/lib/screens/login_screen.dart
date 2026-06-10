@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+/// Pantalla de inicio de sesión.
+/// Permite el acceso mediante Email/Contraseña y autenticación de Google (SSO).
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -201,18 +203,18 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 30.0),
           child: Column(
             children: [
-              const SizedBox(height: 80),
+              const SizedBox(height: 20), // Reducido de 40 a 20
               Image.asset(
                 'assets/images/logo.png',
-                height: 120,
+                height: 320,
                 errorBuilder: (context, error, stackTrace) {
                   debugPrint("Error cargando logo: $error");
-                  return const Icon(Icons.report_problem_rounded, size: 80, color: Colors.orange);
+                  return const Icon(Icons.report_problem_rounded, size: 180, color: Colors.orange);
                 },
               ),
-              const SizedBox(height: 20),
-              const Text("Cantillana Report", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 40),
+              const SizedBox(height: 5), // Reducido de 10 a 5
+              // El nombre de la app ha sido eliminado a petición del usuario
+              const SizedBox(height: 10), // Reducido de 20 a 10
               TextField(
                 controller: _emailController,
                 decoration: InputDecoration(hintText: "Email", prefixIcon: const Icon(Icons.email_outlined), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))),

@@ -7,6 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:appincidencias/utils/web_reload/web_reload.dart';
 
+/// Pantalla de registro de DNI obligatorio.
+/// Se muestra tras el primer inicio de sesión (especialmente con Google)
+/// para asegurar que todos los usuarios tengan su identidad registrada.
 class DniRequiredScreen extends StatefulWidget {
   const DniRequiredScreen({super.key});
 
@@ -81,7 +84,7 @@ class _DniRequiredScreenState extends State<DniRequiredScreen> {
               ),
               const SizedBox(height: 10),
               const Text(
-                "Para usar Cantillana Report necesitamos que registres tu DNI / NIE.",
+                "Para usar Tu Voz Cuenta necesitamos que registres tu DNI / NIE.",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),

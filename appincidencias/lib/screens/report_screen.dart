@@ -16,6 +16,8 @@ import 'package:appincidencias/services/api_service.dart';
 import 'dart:io' show File;
 import 'package:appincidencias/utils/web_reload/web_reload.dart';
 
+/// Pantalla principal para el Ciudadano.
+/// Permite crear nuevos reportes de incidencia seleccionando categoría, foto y ubicación.
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
 
@@ -79,7 +81,7 @@ class _ReportScreenState extends State<ReportScreen> {
   void _showOnboardingGuide() {
     final List<Map<String, String>> guideSteps = [
       {
-        'titulo': '¡Bienvenido a Cantillana Report!',
+        'titulo': '¡Bienvenido a Tu Voz Cuenta!',
         'mensaje': 'Esta app te permite avisar al ayuntamiento de cualquier desperfecto en el municipio de forma rápida y directa.',
         'icono': '👋'
       },

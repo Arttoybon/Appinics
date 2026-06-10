@@ -7,6 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Pantalla de detalle de una incidencia.
+/// Muestra toda la información del reporte, mapa de ubicación, foto a pantalla completa
+/// y permite a técnicos y administradores cambiar el estado o añadir comentarios.
 class IncidentDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> data;
   final String docId;

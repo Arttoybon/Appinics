@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:appincidencias/utils/web_reload/web_reload.dart';
 
+/// Panel de Administración.
+/// Permite a los administradores gestionar usuarios (roles, bloqueos) e incidencias globales.
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});
 

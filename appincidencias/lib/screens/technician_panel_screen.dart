@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:appincidencias/utils/web_reload/web_reload.dart';
 
+/// Panel del Técnico.
+/// Filtra automáticamente las incidencias según la especialidad asignada al operario.
 class TechnicianPanelScreen extends StatefulWidget {
   final String especialidad;
 

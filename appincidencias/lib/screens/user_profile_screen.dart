@@ -6,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+/// Pantalla de perfil de usuario.
+/// Permite visualizar y editar los datos personales (Nombre, DNI) y ver el historial propio.
 class UserProfileScreen extends StatefulWidget {
   final String userId;
   final String userEmail;

@@ -1,6 +1,6 @@
 ================================================================================
-      PROYECTO DE MODERNIZACIÓN DIGITAL: CANTILLANA REPORT
-      Propuesta Estratégica para el Excelentísimo Ayuntamiento de Cantillana
+      PROYECTO DE MODERNIZACIÓN DIGITAL: Tu Voz Cuenta
+      Propuesta Estratégica para el Excelentísimo Ayuntamiento de Tu Voz Cuenta
 ================================================================================
 Objetivo: Transformar la gestión de incidencias de un modelo analógico (papel/voz)
            a un modelo de Ciudad Inteligente (Smart City).
@@ -9,11 +9,11 @@ Duración estimada: 20-25 minutos.
 
 1. EL SALTO AL SIGLO XXI (3 Minutos)
 --------------------------------------------------------------------------------
-- Apertura: "Actualmente, Cantillana depende del teléfono, el correo que se
+- Apertura: "Actualmente, Tu Voz Cuenta depende del teléfono, el correo que se
   pierde o el vecino que tiene que ir físicamente al ayuntamiento. Esto genera
   una 'memoria fragmentada': nadie sabe exactamente cuántos problemas hay hoy
   sin resolver."
-- El Concepto: Cantillana Report no es solo una app, es el PRIMER CEREBRO DIGITAL
+- El Concepto: Tu Voz Cuenta no es solo una app, es el PRIMER CEREBRO DIGITAL
   del municipio. Centraliza lo que hoy está disperso.
 - Impacto: Pasar de la gestión reactiva (esperar la queja) a la gestión
   proactiva (datos en tiempo real).
@@ -59,20 +59,20 @@ Duración estimada: 20-25 minutos.
 - Eficiencia del Personal: Menos tiempo gestionando papeles y llamadas, más
   tiempo reparando.
 - Transparencia Política: Al final del mes, el ayuntamiento puede publicar:
-  "Este mes hemos resuelto 150 incidencias gracias a Cantillana Report". Datos
+  "Este mes hemos resuelto 150 incidencias gracias a Tu Voz Cuenta". Datos
   reales frente a opiniones.
 
-5. ESCALABILIDAD: EL FUTURO DE CANTILLANA (2 Minutos)
+5. ESCALABILIDAD: EL FUTURO DE Tu Voz Cuenta (2 Minutos)
 --------------------------------------------------------------------------------
 - "Este es el primer paso. Una vez que el ciudadano tiene la app en su móvil,
-  Cantillana ya tiene un canal de comunicación directo."
+  Tu Voz Cuenta ya tiene un canal de comunicación directo."
 - Futuro: Avisos de cortes de agua, bandos municipales, agenda cultural, todo
   en la misma plataforma.
 
 6. CIERRE: LA DECISIÓN ESTRATÉGICA (2 Minutos)
 --------------------------------------------------------------------------------
 - "No tener una app hoy es ser invisibles para los ciudadanos más jóvenes y
-  perder eficiencia con los mayores. Cantillana Report es la herramienta para
+  perder eficiencia con los mayores. Tu Voz Cuenta es la herramienta para
   que el ayuntamiento trabaje mejor y el ciudadano viva mejor."
 
 ================================================================================

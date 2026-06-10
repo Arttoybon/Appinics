@@ -1,3 +1,5 @@
+/// Modelo de datos para una Incidencia.
+/// Define las propiedades básicas de un reporte para su uso en la interfaz.
 class Incidencia {
   final String id;
   final String categoria;

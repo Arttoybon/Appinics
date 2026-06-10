@@ -12,6 +12,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:appincidencias/firebase_options.dart';
 import 'package:appincidencias/utils/web_reload/web_reload.dart';
 
+/// Punto de entrada principal de la aplicación.
+/// Configura Firebase, inicializa la base de datos en modo nativo y lanza la app.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -28,16 +30,18 @@ void main() async {
     host: 'firestore.googleapis.com',
   );
   
-  runApp(const CantillanaReportApp());
+  runApp(const TuVozCuentaApp());
 }
 
-class CantillanaReportApp extends StatelessWidget {
-  const CantillanaReportApp({super.key});
+/// Clase principal de la aplicación.
+/// Define el tema global, la configuración de pantalla para escritorio y el sistema de navegación inicial.
+class TuVozCuentaApp extends StatelessWidget {
+  const TuVozCuentaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Cantillana Report',
+      title: 'Tu Voz Cuenta',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
@@ -74,6 +78,9 @@ class CantillanaReportApp extends StatelessWidget {
   }
 }
 
+/// AuthWrapper: Gestiona el estado de autenticación en tiempo real.
+/// Controla si el usuario debe ver el Login, la pantalla de DNI obligatorio,
+/// o el panel correspondiente según su rol (Admin, Técnico o Usuario).
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 

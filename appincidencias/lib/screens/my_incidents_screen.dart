@@ -5,6 +5,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+/// Pantalla de historial de incidencias propias.
+/// Muestra un listado en tiempo real de los reportes enviados por el usuario actual.
 class MyIncidentsScreen extends StatefulWidget {
   const MyIncidentsScreen({super.key});
 

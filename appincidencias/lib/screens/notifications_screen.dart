@@ -5,6 +5,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+/// Pantalla de Notificaciones.
+/// Muestra avisos sobre cambios de estado en las incidencias reportadas (ej: "Su incidencia ha sido resuelta").
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 

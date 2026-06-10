@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// Pantalla de registro manual.
+/// Permite crear una nueva cuenta mediante Email, Contraseña y DNI.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
